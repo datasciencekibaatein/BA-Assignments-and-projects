@@ -1,0 +1,85 @@
+{
+  "orders": 180519,
+  "late_rate": 0.5482913155955883,
+  "shipping_canceled_rate": 0.042953927287432345,
+  "mode_late_rate": {
+    "First Class": 0.953,
+    "Same Day": 0.457,
+    "Second Class": 0.766,
+    "Standard Class": 0.381
+  },
+  "market_late_rate": {
+    "Europe": 0.552,
+    "Pacific Asia": 0.55,
+    "USCA": 0.548,
+    "Africa": 0.546,
+    "LATAM": 0.544
+  },
+  "cm_overall_mean": 16.871946853518782,
+  "cm_overall_median": 26.38999939,
+  "revenue_per_order_avg": 183.10760850778374,
+  "cm_by_segment": {
+    "Consumer": 17.07,
+    "Corporate": 16.85,
+    "Home Office": 16.35
+  },
+  "cm_by_mode": {
+    "First Class": 14.12,
+    "Same Day": 6.85,
+    "Second Class": 15.31,
+    "Standard Class": 19.0
+  },
+  "inefficient_route_count": 9405,
+  "inefficient_route_rate": 0.05209977897063467,
+  "wasted_shipping_cost": 97185.0,
+  "region_hhi": 0.0788358628112808,
+  "fuel_assumption_pct_of_ship": 0.3,
+  "ship_cost_increase_pct": 0.03,
+  "enterprise_cac_baseline": 1200.0,
+  "enterprise_lifetime_deliveries": 240,
+  "cm_corp_before": 16.845369718494606,
+  "cm_corp_after": 16.69225467715419,
+  "delta_cm_per_delivery": -0.15311504134041698,
+  "delta_lifetime_cm": -36.747609921700075,
+  "deliveries_to_recover_cac_before": 71.23619249997907,
+  "deliveries_to_recover_cac_after": 71.88962924477643,
+  "cac_ratio_before": 0.29681746874991277,
+  "cac_ratio_after": 0.29954012185323514,
+  "effective_cac_inflation": 0.009172819628134432,
+  "top_market_basket_pair": {
+    "a": "Central America",
+    "b": "Western Europe",
+    "customers": 3212,
+    "lift": 1.3132894528962396
+  },
+  "strategic_synthesis": {
+    "Same Day": {
+      "Orders": 9737,
+      "AvgDays": 0.478,
+      "AvgRevenue": 179.234,
+      "AvgCM": 6.85,
+      "LateRate": 0.457
+    },
+    "First Class": {
+      "Orders": 27814,
+      "AvgDays": 2.0,
+      "AvgRevenue": 183.377,
+      "AvgCM": 14.122,
+      "LateRate": 0.953
+    },
+    "Second Class": {
+      "Orders": 35216,
+      "AvgDays": 3.991,
+      "AvgRevenue": 182.205,
+      "AvgCM": 15.306,
+      "LateRate": 0.766
+    },
+    "Standard Class": {
+      "Orders": 107752,
+      "AvgDays": 3.996,
+      "AvgRevenue": 183.683,
+      "AvgCM": 18.999,
+      "LateRate": 0.381
+    }
+  }
+}

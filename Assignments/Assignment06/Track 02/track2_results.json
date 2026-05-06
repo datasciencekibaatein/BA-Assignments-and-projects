@@ -1,0 +1,100 @@
+{
+  "period_start": "2009-12-01",
+  "period_end": "2011-12-09",
+  "rows_clean": 805549,
+  "customers": 5878,
+  "invoices": 36969,
+  "products": 4631,
+  "total_revenue_gbp": 17743429.178000003,
+  "arpu_overall": 3018.6167366451177,
+  "aarrr_scores": {
+    "Acquisition": 75,
+    "Activation": 23.6,
+    "Retention": 22.7,
+    "Referral": 0,
+    "Revenue": 65
+  },
+  "aarrr_weakest": "Referral",
+  "activated_pct_30d": 0.2363048656005444,
+  "retention_m1": 0.23035045933991152,
+  "retention_m3": 0.2267778155835318,
+  "retention_m6": 0.18679823069071114,
+  "cohort_count": 25,
+  "avg_m3_retention_across_cohorts": 21.61581303843984,
+  "overall_ltv_historical": 3018.6167366451173,
+  "kfactor": {
+    "users": 1000,
+    "invites": 500,
+    "conversions": 100,
+    "i": 0.5,
+    "c": "Toys & Kids",
+    "K": 0.1,
+    "verdict": "SUB-VIRAL (shrinking organically)"
+  },
+  "aha_baseline_retention": 0.13350785340314136,
+  "aha_3plus_retention": 0.23625215558536117,
+  "aha_lift_factor": 1.7695749692864307,
+  "top10_threshold": 7097.845,
+  "top10_days_median": 21.0,
+  "top10_days_mean": 35.19953051643193,
+  "rest_days_median": 62.0,
+  "rest_days_mean": 103.76109660574413,
+  "ltv_cac_ratio": 2.4,
+  "ltv_cac_payback_months": 5.0,
+  "top_basket_pair_by_lift": {
+    "A": "Jewellery",
+    "B": "Office & Stationery",
+    "Baskets": 2418,
+    "Support": 0.0744,
+    "Conf_A\u2192B": 0.387,
+    "Conf_B\u2192A": 0.342,
+    "Lift": 1.778
+  },
+  "top_basket_pair_by_support": {
+    "A": "Kitchen & Dining",
+    "B": "Other",
+    "Baskets": 21828,
+    "Support": 0.6718,
+    "Conf_A\u2192B": 0.891,
+    "Conf_B\u2192A": 0.78,
+    "Lift": 1.035
+  },
+  "multi_category_basket_pct": 0.8788444372311937,
+  "segment_ltv": {
+    "Active": {
+      "Customers": 901,
+      "AvgAOV": 447.72,
+      "AvgFreq": 2.9,
+      "HistoricalLTV": 1210.82,
+      "PredictedLTV": 1947.58
+    },
+    "Dormant": {
+      "Customers": 2095,
+      "AvgAOV": 352.33,
+      "AvgFreq": 1.74,
+      "HistoricalLTV": 627.14,
+      "PredictedLTV": 919.58
+    },
+    "Loyal": {
+      "Customers": 1266,
+      "AvgAOV": 364.43,
+      "AvgFreq": 6.88,
+      "HistoricalLTV": 2451.82,
+      "PredictedLTV": 3760.92
+    },
+    "New": {
+      "Customers": 721,
+      "AvgAOV": 366.48,
+      "AvgFreq": 1.65,
+      "HistoricalLTV": 588.27,
+      "PredictedLTV": 907.04
+    },
+    "VIP": {
+      "Customers": 895,
+      "AvgAOV": 486.53,
+      "AvgFreq": 23.26,
+      "HistoricalLTV": 13196.07,
+      "PredictedLTV": 16975.03
+    }
+  }
+}

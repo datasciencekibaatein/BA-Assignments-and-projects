@@ -1,0 +1,153 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 750" font-family="Arial, sans-serif">
+  <style>
+    .title { font-size: 22px; font-weight: bold; fill: #1a1a1a; }
+    .subtitle { font-size: 13px; fill: #555; }
+    .entity-title { font-size: 15px; font-weight: bold; fill: #fff; }
+    .entity-row { font-size: 12px; fill: #1a1a1a; }
+    .pk { font-weight: bold; fill: #B8860B; }
+    .fk { font-style: italic; fill: #2E75B6; }
+    .rel-label { font-size: 11px; fill: #444; }
+    .note { font-size: 11px; fill: #555; }
+  </style>
+
+  <!-- Title -->
+  <text x="600" y="35" text-anchor="middle" class="title">Retail Sales — 3NF Entity Relationship Diagram</text>
+  <text x="600" y="55" text-anchor="middle" class="subtitle">Source: synthetic_sales_data_400k.csv (400,000 rows, 14 flat-file columns) → 5 normalized tables</text>
+
+  <!-- =================== PRODUCTS =================== -->
+  <g>
+    <rect x="60" y="100" width="220" height="160" fill="#fff" stroke="#2E75B6" stroke-width="1.5" rx="4"/>
+    <rect x="60" y="100" width="220" height="30" fill="#2E75B6" rx="4"/>
+    <rect x="60" y="115" width="220" height="15" fill="#2E75B6"/>
+    <text x="170" y="120" text-anchor="middle" class="entity-title">PRODUCTS</text>
+    <line x1="60" y1="130" x2="280" y2="130" stroke="#2E75B6"/>
+    <text x="75" y="150" class="entity-row pk">PK  Product_ID (INT)</text>
+    <text x="75" y="170" class="entity-row">Product_Category (VARCHAR)</text>
+    <text x="75" y="190" class="entity-row">Unit_Cost (DECIMAL)</text>
+    <text x="75" y="210" class="entity-row">Unit_Price (DECIMAL)</text>
+    <text x="75" y="240" class="note" font-style="italic">One row per unique Product_ID</text>
+  </g>
+
+  <!-- =================== REGIONS =================== -->
+  <g>
+    <rect x="60" y="320" width="220" height="120" fill="#fff" stroke="#2E75B6" stroke-width="1.5" rx="4"/>
+    <rect x="60" y="320" width="220" height="30" fill="#2E75B6" rx="4"/>
+    <rect x="60" y="335" width="220" height="15" fill="#2E75B6"/>
+    <text x="170" y="340" text-anchor="middle" class="entity-title">REGIONS</text>
+    <line x1="60" y1="350" x2="280" y2="350" stroke="#2E75B6"/>
+    <text x="75" y="370" class="entity-row pk">PK  Region_ID (INT)</text>
+    <text x="75" y="390" class="entity-row">Region_Name (VARCHAR)</text>
+    <text x="75" y="420" class="note" font-style="italic">East / West / North / South</text>
+  </g>
+
+  <!-- =================== SALES_REPS =================== -->
+  <g>
+    <rect x="60" y="500" width="220" height="140" fill="#fff" stroke="#2E75B6" stroke-width="1.5" rx="4"/>
+    <rect x="60" y="500" width="220" height="30" fill="#2E75B6" rx="4"/>
+    <rect x="60" y="515" width="220" height="15" fill="#2E75B6"/>
+    <text x="170" y="520" text-anchor="middle" class="entity-title">SALES_REPS</text>
+    <line x1="60" y1="530" x2="280" y2="530" stroke="#2E75B6"/>
+    <text x="75" y="550" class="entity-row pk">PK  Rep_ID (INT)</text>
+    <text x="75" y="570" class="entity-row">Rep_Name (VARCHAR)</text>
+    <text x="75" y="590" class="entity-row fk">FK  Region_ID → REGIONS</text>
+    <text x="75" y="620" class="note" font-style="italic">Resolves Region_and_Sales_Rep</text>
+  </g>
+
+  <!-- =================== CUSTOMERS =================== -->
+  <g>
+    <rect x="920" y="100" width="220" height="120" fill="#fff" stroke="#2E75B6" stroke-width="1.5" rx="4"/>
+    <rect x="920" y="100" width="220" height="30" fill="#2E75B6" rx="4"/>
+    <rect x="920" y="115" width="220" height="15" fill="#2E75B6"/>
+    <text x="1030" y="120" text-anchor="middle" class="entity-title">CUSTOMERS</text>
+    <line x1="920" y1="130" x2="1140" y2="130" stroke="#2E75B6"/>
+    <text x="935" y="150" class="entity-row pk">PK  Customer_Type_ID (INT)</text>
+    <text x="935" y="170" class="entity-row">Customer_Type (VARCHAR)</text>
+    <text x="935" y="200" class="note" font-style="italic">New / Returning</text>
+  </g>
+
+  <!-- =================== SALES (FACT) =================== -->
+  <g>
+    <rect x="470" y="180" width="280" height="380" fill="#fff" stroke="#B8860B" stroke-width="2" rx="4"/>
+    <rect x="470" y="180" width="280" height="30" fill="#B8860B" rx="4"/>
+    <rect x="470" y="195" width="280" height="15" fill="#B8860B"/>
+    <text x="610" y="200" text-anchor="middle" class="entity-title">SALES (Fact Table)</text>
+    <line x1="470" y1="210" x2="750" y2="210" stroke="#B8860B"/>
+    <text x="485" y="232" class="entity-row pk">PK  Sale_ID (BIGINT, surrogate)</text>
+    <text x="485" y="252" class="entity-row">Sale_Date (DATE)</text>
+    <text x="485" y="272" class="entity-row fk">FK  Product_ID → PRODUCTS</text>
+    <text x="485" y="292" class="entity-row fk">FK  Rep_ID → SALES_REPS</text>
+    <text x="485" y="312" class="entity-row fk">FK  Region_ID → REGIONS</text>
+    <text x="485" y="332" class="entity-row fk">FK  Customer_Type_ID → CUSTOMERS</text>
+    <text x="485" y="352" class="entity-row">Quantity_Sold (INT)</text>
+    <text x="485" y="372" class="entity-row">Sales_Amount (DECIMAL)</text>
+    <text x="485" y="392" class="entity-row">Discount (DECIMAL)</text>
+    <text x="485" y="412" class="entity-row">Payment_Method (VARCHAR)</text>
+    <text x="485" y="432" class="entity-row">Sales_Channel (VARCHAR)</text>
+    <line x1="485" y1="445" x2="735" y2="445" stroke="#ccc" stroke-dasharray="3,3"/>
+    <text x="485" y="465" class="note" font-style="italic">Derived (computed at query time):</text>
+    <text x="485" y="482" class="note">  Unit_Profit = Unit_Price − Unit_Cost</text>
+    <text x="485" y="499" class="note">  Total_Profit = Unit_Profit × Quantity</text>
+    <text x="485" y="513" class="note">                 × (1 − Discount)</text>
+    <text x="485" y="540" class="note" font-style="italic">~400,000 rows</text>
+  </g>
+
+  <!-- =================== Relationships =================== -->
+  <!-- Products -> Sales -->
+  <g stroke="#2E75B6" stroke-width="1.5" fill="none">
+    <path d="M 280 180 Q 380 180 470 250"/>
+  </g>
+  <text x="345" y="195" class="rel-label">1 ── ∞</text>
+
+  <!-- Regions -> Sales -->
+  <g stroke="#2E75B6" stroke-width="1.5" fill="none">
+    <path d="M 280 380 Q 380 380 470 320"/>
+  </g>
+  <text x="345" y="375" class="rel-label">1 ── ∞</text>
+
+  <!-- Sales_Reps -> Sales -->
+  <g stroke="#2E75B6" stroke-width="1.5" fill="none">
+    <path d="M 280 540 Q 380 540 470 380"/>
+  </g>
+  <text x="345" y="555" class="rel-label">1 ── ∞</text>
+
+  <!-- Customers -> Sales -->
+  <g stroke="#2E75B6" stroke-width="1.5" fill="none">
+    <path d="M 920 160 Q 820 160 750 280"/>
+  </g>
+  <text x="830" y="155" class="rel-label">1 ── ∞</text>
+
+  <!-- Regions -> Sales_Reps -->
+  <g stroke="#2E75B6" stroke-width="1.5" fill="none" stroke-dasharray="4,3">
+    <path d="M 170 440 L 170 500"/>
+  </g>
+  <text x="180" y="475" class="rel-label">1 ── ∞</text>
+
+  <!-- Legend / 3NF Justification -->
+  <g>
+    <rect x="800" y="320" width="370" height="320" fill="#FAFAFA" stroke="#999" stroke-width="1" rx="4"/>
+    <text x="985" y="345" text-anchor="middle" class="entity-title" fill="#1a1a1a">Why this design is 3NF</text>
+    <line x1="820" y1="355" x2="1150" y2="355" stroke="#999"/>
+
+    <text x="815" y="378" class="entity-row" font-weight="bold">1NF — Atomic values</text>
+    <text x="815" y="395" class="note">Original `Region_and_Sales_Rep` (e.g. "East-David")</text>
+    <text x="815" y="410" class="note">violates 1NF — split into Rep_ID + Region_ID.</text>
+
+    <text x="815" y="438" class="entity-row" font-weight="bold">2NF — No partial dependencies</text>
+    <text x="815" y="455" class="note">Product_Category, Unit_Cost, Unit_Price depend</text>
+    <text x="815" y="470" class="note">only on Product_ID — moved to PRODUCTS table.</text>
+
+    <text x="815" y="498" class="entity-row" font-weight="bold">3NF — No transitive dependencies</text>
+    <text x="815" y="515" class="note">Sales_Rep → Region was a transitive dependency in</text>
+    <text x="815" y="530" class="note">the flat file (Rep determines Region). Fixed by</text>
+    <text x="815" y="545" class="note">storing Region_ID once on SALES_REPS.</text>
+
+    <text x="815" y="573" class="entity-row" font-weight="bold">Result</text>
+    <text x="815" y="590" class="note">No redundancy. Updating a product's price touches</text>
+    <text x="815" y="605" class="note">one row, not 400,000. Real-time reporting joins</text>
+    <text x="815" y="620" class="note">small dimension tables to one fact table.</text>
+  </g>
+
+  <!-- Footer note -->
+  <text x="600" y="710" text-anchor="middle" class="note">PK = Primary Key (gold)    FK = Foreign Key (italic blue)    Crow's-foot: 1 ── ∞ (one-to-many)</text>
+</svg>
