@@ -1,12 +1,3 @@
-Year,CPI_Inflation_Pct,RBI_Repo_Rate_EOY_Pct,Real_Interest_Approx_Pct,Source_Note
-2015,4.91,6.75,1.84,RBI cut from 7.75% to 6.75% during 2015
-2016,4.95,6.25,1.30,Continued accommodation cycle
-2017,3.33,6.00,2.67,Below-target inflation year
-2018,3.94,6.50,2.56,Mid-cycle hike to 6.50% Aug 2018
-2019,3.73,5.15,1.42,Aggressive easing as growth slowed
-2020,6.62,4.00,-2.62,COVID emergency cut to 4.00%
-2021,5.13,4.00,-1.13,Held at 4.00% through 2021
-2022,6.70,6.25,-0.45,Sharp tightening cycle May-Dec 2022
-2023,5.65,6.50,0.85,Held at 6.50% all year
-2024,4.95,6.50,1.55,Held at 6.50% through 2024
-2025,3.30,5.25,1.95,Cut cycle: 6.50 to 5.25 across 2025
+version https://git-lfs.github.com/spec/v1
+oid sha256:7eeaa150a3cb67bc69ab9d77db5b0c950abd130c826739a6695ccbe4e21bb94f
+size 649
