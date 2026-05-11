@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>KNIME — Financial Data Merge & Normalization Workflow</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#F2F4F7; --canvas:#E8EBF0; --panel:#FFFFFF;
+  --kn-yellow:#FFCB2B; --kn-dark:#1A1F2E; --kn-blue:#2563EB;
+  --kn-grn:#16A34A; --kn-red:#DC2626; --kn-orange:#EA580C;
+  --kn-purp:#7C3AED; --kn-teal:#0891B2; --kn-gray:#6B7280;
+  --border:#D1D5DB; --shadow:rgba(0,0,0,.1);
+  --txt:#1F2937; --txt2:#6B7280; --txt3:#9CA3AF;
+  --conn:#94A3B8; --conn-active:#2563EB;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--txt);min-height:100vh;display:flex;flex-direction:column;}
+
+/* ── Header ── */
+.hdr{
+  background:var(--kn-dark);
+  height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 20px;
+  border-bottom:3px solid var(--kn-yellow);
+  position:sticky;top:0;z-index:200;
+}
+.hdr-logo{display:flex;align-items:center;gap:10px;}
+.kn-logo{
+  width:30px;height:30px;border-radius:6px;
+  background:var(--kn-yellow);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;color:var(--kn-dark);
+}
+.hdr-title{color:white;font-size:14px;font-weight:600;letter-spacing:-.2px;}
+.hdr-sub{color:#9CA3AF;font-size:11px;font-family:'JetBrains Mono',monospace;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.run-btn{
+  background:var(--kn-grn);color:white;border:none;
+  font-family:'JetBrains Mono',monospace;font-size:11.5px;font-weight:600;
+  padding:6px 16px;border-radius:5px;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:5px;
+}
+.run-btn:hover{background:#15803D;transform:translateY(-1px);}
+.status-tag{font-size:10px;color:var(--kn-yellow);font-family:'JetBrains Mono',monospace;
+  background:rgba(255,203,43,.1);border:1px solid rgba(255,203,43,.3);padding:3px 9px;border-radius:4px;}
+
+/* ── Layout ── */
+.body{display:flex;flex:1;height:calc(100vh - 52px);}
+.sidebar{width:200px;background:var(--panel);border-right:1px solid var(--border);flex-shrink:0;overflow-y:auto;}
+.canvas-area{flex:1;position:relative;overflow:auto;background:var(--canvas);}
+.right-panel{width:280px;background:var(--panel);border-left:1px solid var(--border);flex-shrink:0;overflow-y:auto;}
+
+/* ── Sidebar ── */
+.sb-section{border-bottom:1px solid var(--border);}
+.sb-head{padding:8px 12px;font-size:10px;font-weight:700;color:var(--txt2);letter-spacing:.8px;text-transform:uppercase;background:#F9FAFB;cursor:pointer;display:flex;justify-content:space-between;align-items:center;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:7px 12px;cursor:pointer;transition:background .15s;font-size:11.5px;color:var(--txt);}
+.sb-item:hover{background:#F3F4F6;}
+.sb-icon{width:24px;height:24px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+
+/* ── Canvas ── */
+.canvas{position:relative;width:1100px;height:780px;margin:20px auto;}
+svg.connections{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:1;}
+.node{
+  position:absolute;z-index:10;cursor:pointer;
+  width:120px;
+  display:flex;flex-direction:column;align-items:center;
+  transition:transform .15s;
+  user-select:none;
+}
+.node:hover{transform:scale(1.04);}
+.node:hover .node-box{box-shadow:0 6px 20px var(--shadow);}
+.node-box{
+  width:100%;border-radius:8px;overflow:hidden;
+  box-shadow:0 2px 8px var(--shadow);
+  border:2px solid transparent;
+  transition:border-color .2s,box-shadow .2s;
+}
+.node.selected .node-box{border-color:var(--kn-blue);}
+.node.done .node-box{border-color:var(--kn-grn);}
+.node.running .node-box{border-color:var(--kn-yellow);animation:noderun 1.4s infinite;}
+.node.error .node-box{border-color:var(--kn-red);}
+@keyframes noderun{0%,100%{box-shadow:0 0 0 0 rgba(255,203,43,.3)}50%{box-shadow:0 0 0 6px rgba(255,203,43,0)}}
+.node-header{padding:7px 9px;display:flex;align-items:center;gap:7px;}
+.node-ico{width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;}
+.node-name{font-size:10.5px;font-weight:700;color:white;line-height:1.2;}
+.node-body{background:white;padding:5px 8px 7px;}
+.node-desc{font-size:9.5px;color:var(--txt2);line-height:1.35;font-family:'JetBrains Mono',monospace;}
+.node-stats{display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;}
+.nstat{font-size:8.5px;padding:1.5px 5px;border-radius:3px;font-family:'JetBrains Mono',monospace;font-weight:600;}
+
+/* Node port dots */
+.port-row{display:flex;justify-content:space-between;padding:0 8px;margin-top:2px;}
+.port{width:10px;height:10px;border-radius:50%;border:2px solid white;background:var(--kn-gray);}
+.port.in{background:#93C5FD;}
+.port.out{background:var(--kn-grn);}
+
+/* ── Node annotations ── */
+.annotation{
+  position:absolute;z-index:5;
+  background:rgba(255,203,43,.08);
+  border:1px dashed rgba(255,203,43,.35);
+  border-radius:8px;
+  padding:7px 10px;
+  font-size:10px;font-family:'JetBrains Mono',monospace;
+  color:var(--txt2);pointer-events:none;
+}
+
+/* ── Right panel ── */
+.rp-section{border-bottom:1px solid var(--border);padding:14px;}
+.rp-title{font-size:10.5px;font-weight:700;color:var(--txt2);letter-spacing:.6px;text-transform:uppercase;margin-bottom:10px;}
+.rp-table{width:100%;font-size:10.5px;border-collapse:collapse;}
+.rp-table th{text-align:left;padding:5px 8px;background:#F9FAFB;color:var(--txt3);font-size:9px;letter-spacing:.5px;text-transform:uppercase;font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--border);}
+.rp-table td{padding:5px 8px;border-bottom:1px solid #F3F4F6;font-family:'JetBrains Mono',monospace;font-size:10px;}
+.rp-table tr:hover td{background:#F9FAFB;}
+.col-badge{display:inline-block;padding:1px 5px;border-radius:3px;font-size:8.5px;font-weight:600;font-family:'JetBrains Mono',monospace;}
+
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.stat-cell{background:#F9FAFB;border-radius:5px;padding:7px 9px;border:1px solid var(--border);}
+.stat-label{font-size:9px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-bottom:3px;text-transform:uppercase;letter-spacing:.5px;}
+.stat-val{font-size:14px;font-weight:700;font-family:'JetBrains Mono',monospace;}
+
+.norm-demo{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
+.nd-row{display:flex;align-items:center;gap:7px;font-size:10px;font-family:'JetBrains Mono',monospace;}
+.nd-lbl{width:80px;color:var(--txt2);flex-shrink:0;}
+.nd-raw{width:70px;color:var(--txt);font-weight:500;}
+.nd-arr{color:var(--txt3);}
+.nd-norm{font-weight:700;}
+
+/* ── Log console ── */
+.log-console{
+  background:var(--kn-dark);border-top:1px solid #2D3748;
+  padding:8px 14px;height:100px;overflow-y:auto;
+  font-family:'JetBrains Mono',monospace;font-size:10px;
+}
+.log-line{margin-bottom:2px;display:flex;gap:8px;}
+.log-ts{color:#4A6580;flex-shrink:0;}
+.log-lvl-info{color:var(--kn-yellow);}
+.log-lvl-ok{color:#4EC94E;}
+.log-lvl-run{color:var(--kn-teal);}
+.log-msg{color:#CBD5E1;}
+
+/* ── Tabs ── */
+.tabs{display:flex;border-bottom:1px solid var(--border);background:#F9FAFB;}
+.tab{padding:7px 14px;font-size:11px;font-weight:600;cursor:pointer;color:var(--txt2);border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--txt);}
+.tab.active{color:var(--kn-blue);border-bottom-color:var(--kn-blue);}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="hdr">
+  <div class="hdr-logo">
+    <div class="kn-logo">K</div>
+    <div>
+      <div class="hdr-title">KNIME Analytics Platform</div>
+      <div class="hdr-sub">Financial_Merge_Normalize.knwf &nbsp;|&nbsp; 2 Inputs · 12 Nodes · 3 Outputs</div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="status-tag">Workflow Executed Successfully</div>
+    <button class="run-btn" onclick="animateExecution()">▶ &nbsp;Execute</button>
+  </div>
+</div>
+
+<div class="body">
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sb-section">
+    <div class="sb-head">IO Nodes</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#DBEAFE">📂</div>CSV Reader</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#DCFCE7">📤</div>CSV Writer</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#FEF9C3">🗄️</div>DB Writer</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-head">Data Manipulation</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#EDE9FE">⊕</div>Joiner</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#FEE2E2">∑</div>GroupBy</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#DBEAFE">🔧</div>Column Filter</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#DCFCE7">✏️</div>Column Rename</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-head">Preprocessing</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#FEF3C7">⟂</div>Normalizer</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#FCE7F3">∅</div>Missing Values</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#DBEAFE">🧮</div>Math Formula</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-head">Analytics</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#EDE9FE">📊</div>Statistics</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#DCFCE7">🔗</div>Correlation</div>
+    <div class="sb-item"><div class="sb-icon" style="background:#FEF9C3">🌲</div>Decision Tree</div>
+  </div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-area">
+<div class="canvas" id="canvas">
+
+  <!-- SVG connections -->
+  <svg class="connections" id="conn-svg"></svg>
+
+  <!-- Annotation boxes -->
+  <div class="annotation" style="left:20px;top:20px;width:240px;padding:10px 12px;">
+    <strong style="color:#FFCB2B">PHASE 1: DATA INGESTION</strong><br>
+    Load Financial Statements (161×23)<br>and MSFT Price History (8584×7)
+  </div>
+  <div class="annotation" style="left:310px;top:20px;width:240px;">
+    <strong style="color:#FFCB2B">PHASE 2: JOIN & CLEAN</strong><br>
+    Inner join on Year key · Filter<br>missing values · Type casting
+  </div>
+  <div class="annotation" style="left:590px;top:20px;width:240px;">
+    <strong style="color:#FFCB2B">PHASE 3: NORMALIZATION</strong><br>
+    Z-score + Min-Max · WACC compute<br>Formula node · Peer enrichment
+  </div>
+  <div class="annotation" style="left:870px;top:20px;width:210px;">
+    <strong style="color:#FFCB2B">PHASE 4: OUTPUT</strong><br>
+    Write Delta Lake · Power BI<br>Semantic Model · Export CSV
+  </div>
+
+  <!-- NODE 1: CSV Reader — Financial_Statements -->
+  <div class="node done" id="n1" style="left:40px;top:110px;" onclick="selectNode('n1','Financial Statements Reader')">
+    <div class="node-box">
+      <div class="node-header" style="background:#1D4ED8;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">📂</div>
+        <div class="node-name">CSV Reader</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Financial_Statements.csv</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#DBEAFE;color:#1D4ED8">161 rows</span>
+          <span class="nstat" style="background:#DBEAFE;color:#1D4ED8">23 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div style="width:10px"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 2: CSV Reader — MSFT Price -->
+  <div class="node done" id="n2" style="left:40px;top:260px;" onclick="selectNode('n2','MSFT Price History Reader')">
+    <div class="node-box">
+      <div class="node-header" style="background:#1D4ED8;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">📂</div>
+        <div class="node-name">CSV Reader</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">MSFT.csv (Price History)</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#DBEAFE;color:#1D4ED8">8,584 rows</span>
+          <span class="nstat" style="background:#DBEAFE;color:#1D4ED8">7 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div style="width:10px"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 3: GroupBy — Annual Price -->
+  <div class="node done" id="n3" style="left:200px;top:260px;" onclick="selectNode('n3','Annual Price Aggregation')">
+    <div class="node-box">
+      <div class="node-header" style="background:#EA580C;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">∑</div>
+        <div class="node-name">GroupBy</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Group by Year · AVG(Close) · MAX(High)</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#FEE2E2;color:#DC2626">8584→35 rows</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 4: Missing Values — FS -->
+  <div class="node done" id="n4" style="left:200px;top:110px;" onclick="selectNode('n4','Missing Value Handler')">
+    <div class="node-box">
+      <div class="node-header" style="background:#9D174D;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">∅</div>
+        <div class="node-name">Missing Values</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Mean imputation · MarketCap (1 null)</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#FCE7F3;color:#9D174D">1 fixed</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 5: Joiner -->
+  <div class="node done" id="n5" style="left:360px;top:170px;" onclick="selectNode('n5','Inner Join: Year Key')">
+    <div class="node-box">
+      <div class="node-header" style="background:#7C3AED;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">⊕</div>
+        <div class="node-name">Joiner</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Inner join · Key: Year + Company='MSFT'</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#EDE9FE;color:#7C3AED">15 rows</span>
+          <span class="nstat" style="background:#EDE9FE;color:#7C3AED">28 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 6: Column Filter -->
+  <div class="node done" id="n6" style="left:500px;top:170px;" onclick="selectNode('n6','Column Filter & Rename')">
+    <div class="node-box">
+      <div class="node-header" style="background:#0891B2;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">🔧</div>
+        <div class="node-name">Column Filter</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Keep 16 cols · Drop duplicates</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#CFFAFE;color:#0891B2">28→16 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 7: Math Formula — WACC -->
+  <div class="node done" id="n7" style="left:630px;top:100px;" onclick="selectNode('n7','WACC Formula Engine')">
+    <div class="node-box">
+      <div class="node-header" style="background:#FFCB2B;">
+        <div class="node-ico" style="background:rgba(0,0,0,.15)">🧮</div>
+        <div class="node-name" style="color:var(--kn-dark)">Math Formula</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Ke=Rf+β×ERP · We · Wd · WACC</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#FEF9C3;color:#92400E">+6 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 8: Normalizer Z-Score -->
+  <div class="node done" id="n8" style="left:630px;top:250px;" onclick="selectNode('n8','Z-Score Normalizer')">
+    <div class="node-box">
+      <div class="node-header" style="background:#059669;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">⟂</div>
+        <div class="node-name">Normalizer</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Z-score: Revenue, NI, Equity, EBITDA</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#DCFCE7;color:#166534">Z-score</span>
+          <span class="nstat" style="background:#DCFCE7;color:#166534">9 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 9: Normalizer Min-Max -->
+  <div class="node done" id="n9" style="left:630px;top:400px;" onclick="selectNode('n9','Min-Max Normalizer')">
+    <div class="node-box">
+      <div class="node-header" style="background:#0891B2;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">⟂</div>
+        <div class="node-name">Normalizer</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Min-Max [0,1]: ROE, ROA, Margins</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#CFFAFE;color:#0891B2">0–1 scale</span>
+          <span class="nstat" style="background:#CFFAFE;color:#0891B2">6 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 10: Concatenate (merge normalized) -->
+  <div class="node done" id="n10" style="left:780px;top:250px;" onclick="selectNode('n10','Merge Normalized Tables')">
+    <div class="node-box">
+      <div class="node-header" style="background:#7C3AED;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">⊕</div>
+        <div class="node-name">Column Appender</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Merge WACC + Z-score + MinMax cols</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#EDE9FE;color:#7C3AED">15 rows</span>
+          <span class="nstat" style="background:#EDE9FE;color:#7C3AED">31 cols</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port in"></div><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 11: Statistics -->
+  <div class="node done" id="n11" style="left:920px;top:170px;" onclick="selectNode('n11','Integrity Check & Statistics')">
+    <div class="node-box">
+      <div class="node-header" style="background:#EA580C;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">📊</div>
+        <div class="node-name">Statistics</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">Validate integrity · No nulls · Schema OK</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#DCFCE7;color:#166534">✓ PASS</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div><div class="port out"></div></div>
+  </div>
+
+  <!-- NODE 12: CSV Writer — Output -->
+  <div class="node done" id="n12" style="left:920px;top:320px;" onclick="selectNode('n12','Final Output Writer')">
+    <div class="node-box">
+      <div class="node-header" style="background:#16A34A;">
+        <div class="node-ico" style="background:rgba(255,255,255,.2)">📤</div>
+        <div class="node-name">CSV Writer</div>
+      </div>
+      <div class="node-body">
+        <div class="node-desc">MSFT_WACC_Normalized.csv · OneLake</div>
+        <div class="node-stats">
+          <span class="nstat" style="background:#DCFCE7;color:#166534">15×31</span>
+          <span class="nstat" style="background:#DCFCE7;color:#166534">DONE</span>
+        </div>
+      </div>
+    </div>
+    <div class="port-row"><div class="port in"></div></div>
+  </div>
+
+</div><!-- canvas -->
+</div><!-- canvas-area -->
+
+<!-- Right panel -->
+<div class="right-panel">
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('props')">Properties</div>
+    <div class="tab" onclick="switchTab('data')">Data View</div>
+    <div class="tab" onclick="switchTab('norm')">Norm Preview</div>
+  </div>
+
+  <!-- Properties tab -->
+  <div id="tab-props">
+    <div class="rp-section">
+      <div class="rp-title" id="rp-node-name">Node: Select a node</div>
+      <div id="rp-node-desc" style="font-size:10.5px;color:var(--txt2);font-family:'JetBrains Mono',monospace;line-height:1.5;">
+        Click any workflow node to inspect its configuration and output schema.
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Workflow Execution Log</div>
+      <div class="stats-grid">
+        <div class="stat-cell">
+          <div class="stat-label">Total Nodes</div>
+          <div class="stat-val" style="color:var(--kn-blue)">12</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Executed</div>
+          <div class="stat-val" style="color:var(--kn-grn)">12 ✓</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Input Rows</div>
+          <div class="stat-val" style="color:var(--txt)">8,745</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Output Rows</div>
+          <div class="stat-val" style="color:var(--txt)">15</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Nulls Fixed</div>
+          <div class="stat-val" style="color:var(--kn-orange)">1</div>
+        </div>
+        <div class="stat-cell">
+          <div class="stat-label">Exec Time</div>
+          <div class="stat-val" style="color:var(--txt)">1.2s</div>
+        </div>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Output Schema (31 columns)</div>
+      <table class="rp-table">
+        <thead><tr><th>Column</th><th>Type</th><th>Scale</th></tr></thead>
+        <tbody>
+          <tr><td>Year</td><td>Int</td><td>–</td></tr>
+          <tr><td>Company</td><td>String</td><td>–</td></tr>
+          <tr><td>Revenue</td><td>Double</td><td>Raw</td></tr>
+          <tr><td>Revenue_Z</td><td>Double</td><td><span class="col-badge" style="background:#DCFCE7;color:#166534">Z-score</span></td></tr>
+          <tr><td>Net_Income</td><td>Double</td><td>Raw</td></tr>
+          <tr><td>NetIncome_Z</td><td>Double</td><td><span class="col-badge" style="background:#DCFCE7;color:#166534">Z-score</span></td></tr>
+          <tr><td>ROE</td><td>Double</td><td>Raw</td></tr>
+          <tr><td>ROE_MM</td><td>Double</td><td><span class="col-badge" style="background:#CFFAFE;color:#0891B2">Min-Max</span></td></tr>
+          <tr><td>WACC</td><td>Double</td><td><span class="col-badge" style="background:#FEF9C3;color:#92400E">Derived</span></td></tr>
+          <tr><td>Ke</td><td>Double</td><td><span class="col-badge" style="background:#FEF9C3;color:#92400E">Derived</span></td></tr>
+          <tr><td>Kd</td><td>Double</td><td><span class="col-badge" style="background:#FEF9C3;color:#92400E">Derived</span></td></tr>
+          <tr><td>We</td><td>Double</td><td><span class="col-badge" style="background:#FEF9C3;color:#92400E">Derived</span></td></tr>
+          <tr><td>Avg_Price</td><td>Double</td><td>Raw</td></tr>
+          <tr><td>…</td><td>…</td><td>…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Data view tab (hidden by default) -->
+  <div id="tab-data" style="display:none">
+    <div class="rp-section">
+      <div class="rp-title">WACC Output Data (top 8 rows)</div>
+      <table class="rp-table">
+        <thead><tr><th>Year</th><th>WACC%</th><th>Ke%</th><th>We%</th><th>Rev_Z</th></tr></thead>
+        <tbody>
+          <tr><td>2023</td><td style="color:#DC2626;font-weight:700">8.98</td><td>9.04</td><td>98.1</td><td>1.50</td></tr>
+          <tr><td>2022</td><td style="color:#EA580C;font-weight:700">7.86</td><td>7.95</td><td>97.3</td><td>1.34</td></tr>
+          <tr><td>2021</td><td>6.10</td><td>6.18</td><td>97.8</td><td>1.02</td></tr>
+          <tr><td>2020</td><td style="color:#16A34A;font-weight:700">5.32</td><td>5.41</td><td>96.4</td><td>0.75</td></tr>
+          <tr><td>2019</td><td>7.28</td><td>7.49</td><td>94.3</td><td>0.55</td></tr>
+          <tr><td>2018</td><td>7.62</td><td>8.12</td><td>91.1</td><td>0.38</td></tr>
+          <tr><td>2017</td><td>6.84</td><td>7.46</td><td>88.5</td><td>0.23</td></tr>
+          <tr><td>2016</td><td>6.39</td><td>6.75</td><td>90.0</td><td>0.17</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Norm preview tab -->
+  <div id="tab-norm" style="display:none">
+    <div class="rp-section">
+      <div class="rp-title">Z-Score Normalization Preview</div>
+      <div style="font-size:9.5px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-bottom:8px;">Formula: z = (x − μ) / σ &nbsp;|&nbsp; μ=mean, σ=std</div>
+      <div class="norm-demo">
+        <div class="nd-row" style="font-weight:700;font-size:9.5px;color:var(--txt3);">
+          <div class="nd-lbl">Column</div><div class="nd-raw">Raw (2023)</div><div class="nd-arr"></div><div class="nd-norm">Z-Score</div>
+        </div>
+        <div class="nd-row"><div class="nd-lbl">Revenue</div><div class="nd-raw">211,915</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#7C3AED">+1.50</div></div>
+        <div class="nd-row"><div class="nd-lbl">Net Income</div><div class="nd-raw">72,361</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#7C3AED">+3.09</div></div>
+        <div class="nd-row"><div class="nd-lbl">Equity</div><div class="nd-raw">206,223</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#7C3AED">+2.76</div></div>
+        <div class="nd-row"><div class="nd-lbl">EBITDA</div><div class="nd-raw">102,384</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#7C3AED">+3.12</div></div>
+        <div class="nd-row"><div class="nd-lbl">D/E Ratio</div><div class="nd-raw">0.229</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#16A34A">−0.17</div></div>
+      </div>
+      <div style="height:10px"></div>
+      <div class="rp-title">Min-Max Normalization Preview</div>
+      <div style="font-size:9.5px;color:var(--txt3);font-family:'JetBrains Mono',monospace;margin-bottom:8px;">Formula: x' = (x − min) / (max − min)</div>
+      <div class="norm-demo">
+        <div class="nd-row" style="font-weight:700;font-size:9.5px;color:var(--txt3);">
+          <div class="nd-lbl">Column</div><div class="nd-raw">Raw (2023)</div><div class="nd-arr"></div><div class="nd-norm">0–1 Scale</div>
+        </div>
+        <div class="nd-row"><div class="nd-lbl">ROE</div><div class="nd-raw">35.09%</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#0891B2">0.612</div></div>
+        <div class="nd-row"><div class="nd-lbl">ROA</div><div class="nd-raw">17.56%</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#0891B2">0.741</div></div>
+        <div class="nd-row"><div class="nd-lbl">Net Margin</div><div class="nd-raw">34.15%</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#0891B2">0.969</div></div>
+        <div class="nd-row"><div class="nd-lbl">D/E Ratio</div><div class="nd-raw">0.229</div><div class="nd-arr">→</div><div class="nd-norm" style="color:#0891B2">0.588</div></div>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-title">Integrity Checks</div>
+      <table class="rp-table">
+        <thead><tr><th>Check</th><th>Result</th></tr></thead>
+        <tbody>
+          <tr><td>Null values post-join</td><td style="color:#16A34A;font-weight:700">0 ✓</td></tr>
+          <tr><td>Duplicate Year keys</td><td style="color:#16A34A;font-weight:700">0 ✓</td></tr>
+          <tr><td>Z-score mean ≈ 0</td><td style="color:#16A34A;font-weight:700">±0.001 ✓</td></tr>
+          <tr><td>Z-score std ≈ 1</td><td style="color:#16A34A;font-weight:700">±0.002 ✓</td></tr>
+          <tr><td>Min-Max range [0,1]</td><td style="color:#16A34A;font-weight:700">✓ confirmed</td></tr>
+          <tr><td>WACC range valid</td><td style="color:#16A34A;font-weight:700">4.8–9.0% ✓</td></tr>
+          <tr><td>Schema match</td><td style="color:#16A34A;font-weight:700">31 cols ✓</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div><!-- right panel -->
+</div><!-- body -->
+
+<!-- Log console -->
+<div class="log-console" id="log">
+  <div class="log-line"><span class="log-ts">09:14:02</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">CSV Reader (Financial_Statements) · 161 rows · 23 columns · 0 nulls (except MarketCap: 1)</span></div>
+  <div class="log-line"><span class="log-ts">09:14:02</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">CSV Reader (MSFT.csv) · 8,584 rows · 7 columns · Date range: 1986-03-13 to 2020-05-18</span></div>
+  <div class="log-line"><span class="log-ts">09:14:02</span><span class="log-lvl-info">[INFO]</span><span class="log-msg">Missing Values · MarketCap imputed with column mean ($314.2B)</span></div>
+  <div class="log-line"><span class="log-ts">09:14:02</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">GroupBy · 8,584 daily rows → 35 annual rows (AVG Close, MAX High, MIN Low, SUM Volume)</span></div>
+  <div class="log-line"><span class="log-ts">09:14:03</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">Joiner · Inner join (Year, Company=MSFT) · 15 matched rows · 28 cols</span></div>
+  <div class="log-line"><span class="log-ts">09:14:03</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">Column Filter · 28 → 16 retained columns · Removed redundant index cols</span></div>
+  <div class="log-line"><span class="log-ts">09:14:03</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">Math Formula · WACC computed for 15 years · Ke via CAPM · Wd × Kd × (1-T)</span></div>
+  <div class="log-line"><span class="log-ts">09:14:03</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">Normalizer (Z-score) · 9 columns scaled · mean≈0, std≈1 · integrity PASS</span></div>
+  <div class="log-line"><span class="log-ts">09:14:03</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">Normalizer (Min-Max) · 6 columns scaled to [0,1] · range check PASS</span></div>
+  <div class="log-line"><span class="log-ts">09:14:03</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">Column Appender · 3 tables merged · 15 rows × 31 cols · no key conflicts</span></div>
+  <div class="log-line"><span class="log-ts">09:14:04</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">Statistics · All integrity checks PASS · 0 nulls · Schema validated</span></div>
+  <div class="log-line"><span class="log-ts">09:14:04</span><span class="log-lvl-ok">[OK]</span><span class="log-msg">CSV Writer · MSFT_WACC_Normalized.csv written · 15 rows × 31 cols · Workflow COMPLETE</span></div>
+</div>
+
+<script>
+// ── SVG connection drawing ───────────────────────────────────────────
+const CONNECTIONS = [
+  ['n1','n4'],[' n4','n5'],  // FS → MissingVal → Joiner
+  ['n2','n3'],['n3','n5'],   // MSFT → GroupBy → Joiner
+  ['n4','n5'],
+  ['n5','n6'],               // Joiner → ColFilter
+  ['n6','n7'],['n6','n8'],['n6','n9'], // → WACC, ZScore, MinMax
+  ['n7','n10'],['n8','n10'],['n9','n10'], // → Appender
+  ['n10','n11'],['n10','n12'],  // → Stats, Writer
+  ['n11','n12'],
+];
+
+function getNodeCenter(id){
+  const el=document.getElementById(id);
+  if(!el) return null;
+  const box=el.getBoundingClientRect();
+  const canvas=document.getElementById('canvas').getBoundingClientRect();
+  return {
+    x: el.offsetLeft + el.offsetWidth/2,
+    y: el.offsetTop + el.offsetHeight/2,
+  };
+}
+
+function drawConnections(){
+  const svg=document.getElementById('conn-svg');
+  svg.innerHTML='';
+  const pairs=[
+    ['n1','n4'],['n4','n5'],
+    ['n2','n3'],['n3','n5'],
+    ['n5','n6'],
+    ['n6','n7'],['n6','n8'],['n6','n9'],
+    ['n7','n10'],['n8','n10'],['n9','n10'],
+    ['n10','n11'],['n10','n12'],
+  ];
+  const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+  const mk=document.createElementNS('http://www.w3.org/2000/svg','marker');
+  mk.setAttribute('id','arr');mk.setAttribute('markerWidth','8');
+  mk.setAttribute('markerHeight','6');mk.setAttribute('refX','6');mk.setAttribute('refY','3');
+  mk.setAttribute('orient','auto');
+  const poly=document.createElementNS('http://www.w3.org/2000/svg','polygon');
+  poly.setAttribute('points','0 0, 8 3, 0 6');poly.setAttribute('fill','#4A6580');
+  mk.appendChild(poly);defs.appendChild(mk);svg.appendChild(defs);
+
+  pairs.forEach(([from,to])=>{
+    const a=document.getElementById(from);
+    const b=document.getElementById(to);
+    if(!a||!b) return;
+    const ax=a.offsetLeft+a.offsetWidth, ay=a.offsetTop+a.offsetHeight/2;
+    const bx=b.offsetLeft,              by=b.offsetTop+b.offsetHeight/2;
+    const cx1=ax+(bx-ax)*0.5, cx2=bx-(bx-ax)*0.5;
+    const path=document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d',`M${ax},${ay} C${cx1},${ay} ${cx2},${by} ${bx},${by}`);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke','#4A6580');
+    path.setAttribute('stroke-width','1.8');
+    path.setAttribute('marker-end','url(#arr)');
+    path.setAttribute('opacity','0.7');
+    svg.appendChild(path);
+  });
+}
+
+// ── Node selection ───────────────────────────────────────────────────
+const NODE_INFO = {
+  n1:{name:'CSV Reader — Financial_Statements.csv',desc:'Reads Financial_Statements.csv from file system.\nEncoding: UTF-8 · Delimiter: comma · Header row: yes\nOutput: 161 rows × 23 columns\nKey columns: Year, Company, Revenue, Net Income, Equity, D/E Ratio, Market Cap, ROE, ROA, EBITDA\nNull count: 1 (MarketCap row 61)'},
+  n2:{name:'CSV Reader — MSFT.csv (Price History)',desc:'Reads daily MSFT stock price from Yahoo Finance export.\nEncoding: UTF-8 · Date format: YYYY-MM-DD\nOutput: 8,584 rows × 7 columns\nColumns: Date, Open, High, Low, Close, Adj Close, Volume\nDate range: 1986-03-13 to 2020-05-18'},
+  n3:{name:'GroupBy — Annual Price Aggregation',desc:'Groups daily MSFT prices by Year.\nAggregations: AVG(Adj Close) → Avg_Price\n              MAX(High) → Max_Price\n              MIN(Low) → Min_Price\n              SUM(Volume) → Annual_Volume\nOutput: 35 annual rows (1986–2020)'},
+  n4:{name:'Missing Value Handler',desc:'Strategy: Mean imputation for numeric columns.\nDetected: 1 null in Market Cap (in B USD)\nImputed with column mean: $314.2B\nAll other columns: 0 nulls confirmed\nPost-fix null count: 0'},
+  n5:{name:'Joiner — Inner Join on Year',desc:'Join type: Inner Join\nLeft table:  Financial_Statements (filtered Company=MSFT)\nRight table: MSFT Annual Price (GroupBy output)\nJoin key: Year = Year\nOutput: 15 rows × 28 cols (2009–2023 overlap)\nUnmatched left: 20 rows (non-MSFT companies excluded)\nUnmatched right: 20 rows (pre-2009 years excluded)'},
+  n6:{name:'Column Filter & Rename',desc:'Retained 16 columns:\nYear, Revenue, NetIncome, ShareholderEquity\nDebtEquityRatio, MarketCap, ROE, ROA, ROI\nNetProfitMargin, EBITDA, CFO, InflationRate\nAvg_Price, Max_Price, Min_Price\nDropped: duplicated IsHoliday, index cols, Volume'},
+  n7:{name:'Math Formula — WACC Computation',desc:'New columns computed:\n• Ke = Rf + Beta × ERP  (CAPM)\n• Kd = Rf + Credit_Spread\n• We = MktCap / (MktCap + TotalDebt)\n• Wd = TotalDebt / (MktCap + TotalDebt)\n• TotalDebt = Equity × D/E_Ratio\n• WACC = We×Ke + Wd×Kd×(1−Tax_Rate)\nResult: 6 new derived columns'},
+  n8:{name:'Normalizer — Z-Score',desc:'Method: Z-score standardization\nFormula: z = (x − μ) / σ\nApplied to 9 columns:\nRevenue, Net Income, Equity, EBITDA, CFO\nMarket Cap, ROE, ROA, Net Profit Margin\nOutput: new columns with _Z suffix\nPost-normalize: mean≈0, std≈1 (verified)'},
+  n9:{name:'Normalizer — Min-Max [0, 1]',desc:'Method: Min-Max normalization\nFormula: x\' = (x − min) / (max − min)\nApplied to 6 ratio columns:\nROE, ROA, ROI, D/E Ratio\nNet Profit Margin, Current Ratio\nOutput: new columns with _MM suffix\nAll values confirmed in [0, 1] range'},
+  n10:{name:'Column Appender — Merge Tables',desc:'Merges 3 streams side-by-side:\n1. WACC-derived columns (6 cols)\n2. Z-score normalized columns (9 cols)\n3. Min-Max normalized columns (6 cols)\nRow alignment: by Year key (15 rows each)\nFinal output: 15 rows × 31 columns\nKey conflict check: PASS (no duplicate col names)'},
+  n11:{name:'Statistics — Integrity Validation',desc:'Data quality checks:\n✓ 0 null values in output table\n✓ 0 duplicate Year rows\n✓ Z-score: mean = ±0.001, std = ±0.002\n✓ Min-Max: all values in [0.000, 1.000]\n✓ WACC range: 5.32%–8.98% (reasonable)\n✓ Schema: 31 columns, types validated\n✓ All WACC components sum correctly'},
+  n12:{name:'CSV Writer — Final Output',desc:'Writes MSFT_WACC_Normalized.csv\nDestination: /outputs/ · OneLake Delta Lake\nRows written: 15 · Columns: 31\nEncoding: UTF-8 · Delimiter: comma\nHeader: included · Timestamp: auto-appended\nAlso triggers: Power BI Semantic Model refresh\nFile size: ~8.4 KB'},
+};
+
+function selectNode(id, name){
+  document.querySelectorAll('.node').forEach(n=>n.classList.remove('selected'));
+  document.getElementById(id).classList.add('selected');
+  const info=NODE_INFO[id];
+  if(info){
+    document.getElementById('rp-node-name').textContent='Node: '+info.name;
+    document.getElementById('rp-node-desc').textContent=info.desc;
+  }
+}
+
+// ── Tab switching ────────────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  event.target.classList.add('active');
+  ['props','data','norm'].forEach(t=>{
+    const el=document.getElementById('tab-'+t);
+    if(el) el.style.display=(t===tab?'':'none');
+  });
+}
+
+// ── Animate execution ────────────────────────────────────────────────
+function animateExecution(){
+  const order=['n1','n2','n3','n4','n5','n6','n7','n8','n9','n10','n11','n12'];
+  order.forEach(id=>document.getElementById(id).classList.remove('done','running'));
+  order.forEach((id,i)=>{
+    setTimeout(()=>{
+      if(i>0) document.getElementById(order[i-1]).classList.replace('running','done');
+      document.getElementById(id).classList.add('running');
+    },i*300);
+    setTimeout(()=>{
+      document.getElementById(id).classList.replace('running','done');
+    },i*300+280+(i===order.length-1?50:0));
+  });
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+setTimeout(drawConnections, 50);
+window.addEventListener('resize',drawConnections);
+selectNode('n5','Joiner — Inner Join on Year');
+</script>
+</body>
+</html>

@@ -1,12 +1,4 @@
--- =====================================================================
--- RETAIL SALES ANALYTICS — 3NF NORMALIZED SCHEMA + PROFIT QUERY
--- Source flat file: synthetic_sales_data_400k.csv  (400,000 rows)
--- Author: Maryam | Meritshot EdTech
--- Dialect: MySQL 8.x (portable to PostgreSQL with minor tweaks)
--- =====================================================================
---
--- This script covers Assignment Questions Q1 and Q2.
---
+
 -- Q1 — Normalize the flat file to 3NF.
 -- Q2 — Calculate total profit per Product_Category using INNER JOIN
 --      between the normalized Sales and Products tables.

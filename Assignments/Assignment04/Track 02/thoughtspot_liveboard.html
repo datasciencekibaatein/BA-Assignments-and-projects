@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ThoughtSpot — RavenStack 30-Day Conversion</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --navy:#0E265A; --blue:#1C4ED8; --cyan:#0891B2;
+  --green:#059669; --amber:#D97706; --red:#DC2626; --purple:#7C3AED;
+  --bg:#F0F5FC; --panel:#fff; --panel2:#F4F8FE;
+  --dark:#1E2740; --muted:#64748B; --border:#CBD5E1; --grid:#E2E8F0;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--dark);}
+
+/* ── nav ── */
+.nav{background:var(--navy);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.3);}
+.logo{display:flex;align-items:center;gap:9px;}
+.logo-mark{width:30px;height:30px;border-radius:7px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:11px;color:#fff;font-weight:500;}
+.logo-text{color:#fff;font-size:15px;font-weight:700;}
+.logo-sub{color:#93C5FD;font-size:10px;}
+.badge{background:rgba(59,130,246,.25);border:1px solid rgba(59,130,246,.4);color:#93C5FD;font-size:10.5px;padding:2px 9px;border-radius:18px;font-family:'DM Mono',monospace;}
+.dot{width:7px;height:7px;border-radius:50%;background:#10B981;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+
+/* ── query bar ── */
+.qbar{background:var(--navy);padding:10px 24px 13px;border-bottom:1px solid rgba(255,255,255,.08);}
+.qlbl{color:#93C5FD;font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px;font-family:'DM Mono',monospace;}
+.qtxt{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:9px;padding:9px 13px;color:#fff;font-size:13px;display:flex;align-items:center;gap:8px;}
+.qans{margin-top:7px;padding:7px 13px;background:rgba(5,150,105,.15);border:1px solid rgba(5,150,105,.4);border-radius:7px;color:#34D399;font-size:11px;font-family:'DM Mono',monospace;}
+
+/* ── kpi ── */
+.kpis{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;padding:13px 24px;}
+.kc{background:var(--panel);border-radius:9px;border:1.5px solid var(--border);padding:12px 13px;transition:transform .18s,box-shadow .18s;}
+.kc:hover{transform:translateY(-2px);box-shadow:0 5px 18px rgba(28,78,216,.1);}
+.kl{font-size:9px;color:var(--muted);letter-spacing:.8px;text-transform:uppercase;font-family:'DM Mono',monospace;margin-bottom:4px;}
+.kv{font-size:20px;font-weight:800;line-height:1;}
+.ks{font-size:9.5px;color:var(--muted);margin-top:3px;}
+
+/* ── filter bar ── */
+.fbar{display:flex;align-items:center;gap:7px;padding:9px 24px 11px;flex-wrap:wrap;background:var(--panel);border-bottom:1px solid var(--grid);}
+.fl{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;font-weight:600;white-space:nowrap;}
+.fb{padding:4px 11px;border-radius:16px;font-size:11px;font-weight:600;border:1.5px solid var(--border);background:var(--panel);color:var(--dark);cursor:pointer;transition:all .15s;font-family:'Sora',sans-serif;}
+.fb:hover{border-color:var(--blue);color:var(--blue);}
+.fb.on{background:var(--blue);border-color:var(--blue);color:#fff;}
+.sep{width:1px;height:20px;background:var(--border);margin:0 2px;}
+.fc{margin-left:auto;font-size:10.5px;color:var(--muted);font-family:'DM Mono',monospace;transition:color .2s;}
+.fc.filtered{color:var(--blue);font-weight:600;}
+
+/* ── layout ── */
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:13px;padding:13px 24px 22px;}
+.panel{background:var(--panel);border:1.5px solid var(--border);border-radius:10px;padding:17px;}
+.wide{grid-column:span 2;}
+.pt{font-size:12px;font-weight:700;color:var(--dark);margin-bottom:3px;}
+.ps{font-size:10px;color:var(--muted);margin-bottom:13px;font-family:'DM Mono',monospace;}
+
+/* ── bar chart ── */
+.bars{display:flex;flex-direction:column;gap:9px;}
+/* each .brow has data-ind / data-src / data-plan */
+.brow{display:flex;align-items:center;gap:8px;transition:opacity .25s;}
+.brow.dim{opacity:.13;}
+.blbl{font-size:11px;color:var(--dark);width:115px;flex-shrink:0;font-weight:500;}
+.btrack{flex:1;height:24px;background:var(--panel2);border-radius:5px;overflow:hidden;}
+.bfill{height:100%;border-radius:5px;display:flex;align-items:center;padding-left:8px;font-size:10px;font-weight:700;color:#fff;transition:width 1s cubic-bezier(.4,0,.2,1),opacity .25s;font-family:'DM Mono',monospace;min-width:40px;}
+.bn{font-size:10px;color:var(--muted);width:44px;text-align:right;font-family:'DM Mono',monospace;}
+
+/* ── funnel ── */
+.fstage{display:flex;align-items:center;gap:10px;padding:8px 6px;border-bottom:1px dashed var(--grid);border-radius:7px;transition:background .15s;}
+.fstage:hover{background:var(--panel2);}
+.fstage:last-of-type{border-bottom:none;}
+.fnum{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:#fff;flex-shrink:0;}
+.fname{font-size:12px;font-weight:600;}
+.fdesc{font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;}
+.fbw{width:100px;}
+.fbar{height:14px;border-radius:3px;display:flex;align-items:center;padding-left:5px;transition:width 1.1s cubic-bezier(.4,0,.2,1);}
+.fbar span{font-size:9px;color:#fff;font-weight:700;font-family:'DM Mono',monospace;}
+.fcnt{font-size:12px;font-weight:800;width:46px;text-align:right;font-family:'DM Mono',monospace;}
+.fleak{margin:3px 0 3px 32px;padding:3px 8px;background:rgba(220,38,38,.07);border-left:3px solid var(--red);border-radius:0 5px 5px 0;font-size:10px;color:var(--red);font-family:'DM Mono',monospace;}
+
+/* ── table ── */
+.tbl{width:100%;border-collapse:collapse;font-size:11px;}
+.tbl th{text-align:left;padding:7px 10px;background:var(--panel2);color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.6px;font-family:'DM Mono',monospace;border-bottom:2px solid var(--border);cursor:pointer;user-select:none;}
+.tbl th:hover{color:var(--blue);}
+.tbl td{padding:8px 10px;border-bottom:1px solid var(--grid);transition:opacity .22s;}
+.tbl tr.dim td{opacity:.1;pointer-events:none;}
+.tbl tr:hover td{background:var(--panel2);}
+.tbl tr:last-child td{border-bottom:none;}
+.bw{background:rgba(5,150,105,.12);color:var(--green);padding:1px 7px;border-radius:16px;font-size:9px;font-weight:700;font-family:'DM Mono',monospace;}
+.br2{background:rgba(220,38,38,.1);color:var(--red);padding:1px 7px;border-radius:16px;font-size:9px;font-weight:700;font-family:'DM Mono',monospace;}
+.pill{display:inline-block;padding:2px 8px;border-radius:16px;font-weight:700;font-family:'DM Mono',monospace;font-size:10px;}
+.nores{text-align:center;padding:24px;color:var(--muted);font-size:12px;display:none;}
+.nores.show{display:block;}
+
+/* ── donut ── */
+.dwrap{display:flex;align-items:center;gap:16px;margin-top:6px;}
+.dleg{display:flex;flex-direction:column;gap:7px;}
+.dli{display:flex;align-items:center;gap:6px;font-size:11px;}
+.ddot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.dpct{font-weight:700;font-family:'DM Mono',monospace;}
+
+/* ── ai panel ── */
+.ai{background:linear-gradient(135deg,#0E265A,#1C3A6E);border:1.5px solid rgba(59,130,246,.3);border-radius:10px;padding:16px;grid-column:span 2;}
+.aih{display:flex;align-items:center;gap:10px;margin-bottom:11px;}
+.aiico{width:32px;height:32px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ait{color:#fff;font-size:12.5px;font-weight:700;}
+.aic{color:#93C5FD;font-size:10px;font-family:'DM Mono',monospace;}
+.aifs{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
+.aif{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:12px;}
+.aitag{font-size:8px;font-family:'DM Mono',monospace;letter-spacing:1px;text-transform:uppercase;margin-bottom:4px;font-weight:600;}
+.aival{font-size:18px;font-weight:800;line-height:1;margin-bottom:4px;}
+.aidc{font-size:10px;color:#CBD5E1;line-height:1.4;}
+
+.footer{text-align:center;padding:13px;font-size:10px;color:var(--muted);font-family:'DM Mono',monospace;border-top:1px solid var(--grid);}
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="logo">
+    <div class="logo-mark">TS</div>
+    <div><div class="logo-text">ThoughtSpot</div><div class="logo-sub">AI Answer Engine</div></div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="badge">Liveboard: RavenStack Growth</div>
+    <div class="badge">Workspace: Customer Success</div>
+    <div style="display:flex;align-items:center;gap:5px;color:#93C5FD;font-size:10.5px;"><div class="dot"></div>Live</div>
+  </div>
+</div>
+
+<div class="qbar">
+  <div class="qlbl">Natural Language Query</div>
+  <div class="qtxt"><span style="color:#93C5FD;font-size:14px;">⌕</span> Which customer segment has the highest conversion rate after the first 30 days?</div>
+  <div class="qans">✓ &nbsp;<strong>FinTech + Basic converts at 67.6% in 30 days — highest segment. Organic-sourced accounts follow at 64.0%.</strong> &nbsp;|&nbsp; 500 accounts · p &lt; 0.05</div>
+</div>
+
+<div class="kpis">
+  <div class="kc" style="border-color:var(--blue)"><div class="kl">Total Accounts</div><div class="kv" style="color:var(--blue)" id="k-total">500</div><div class="ks">All segments</div></div>
+  <div class="kc" style="border-color:var(--green)"><div class="kl">30d Conv. Rate</div><div class="kv" style="color:var(--green)" id="k-conv">54.2%</div><div class="ks" id="k-csub">271 converted</div></div>
+  <div class="kc" style="border-color:var(--green)"><div class="kl">Top Segment</div><div class="kv" style="color:var(--green);font-size:14px">FinTech/Basic</div><div class="ks">67.6% · n=34</div></div>
+  <div class="kc" style="border-color:var(--green)"><div class="kl">Best Source</div><div class="kv" style="color:var(--green);font-size:14px">Organic</div><div class="ks">64.0% · 17.5% churn</div></div>
+  <div class="kc" style="border-color:var(--red)"><div class="kl">Churn Rate</div><div class="kv" style="color:var(--red)" id="k-churn">22.0%</div><div class="ks">110 churned</div></div>
+  <div class="kc" style="border-color:var(--amber)"><div class="kl">Funnel Leak</div><div class="kv" style="color:var(--amber)">45.8%</div><div class="ks">229 slow-convert</div></div>
+  <div class="kc" style="border-color:var(--purple)"><div class="kl">Upgrade Rate</div><div class="kv" style="color:var(--purple)">4.4%</div><div class="ks">Only 22 upgrades</div></div>
+</div>
+
+<!-- Filter bar — 3 independent filter groups -->
+<div class="fbar">
+  <span class="fl">INDUSTRY:</span>
+  <button class="fb on"  data-g="ind" data-v="all">All</button>
+  <button class="fb" data-g="ind" data-v="FinTech">FinTech</button>
+  <button class="fb" data-g="ind" data-v="HealthTech">HealthTech</button>
+  <button class="fb" data-g="ind" data-v="EdTech">EdTech</button>
+  <button class="fb" data-g="ind" data-v="DevTools">DevTools</button>
+  <button class="fb" data-g="ind" data-v="Cybersecurity">Cybersecurity</button>
+  <div class="sep"></div>
+  <span class="fl">SOURCE:</span>
+  <button class="fb on"  data-g="src" data-v="all">All</button>
+  <button class="fb" data-g="src" data-v="organic">Organic</button>
+  <button class="fb" data-g="src" data-v="partner">Partner</button>
+  <button class="fb" data-g="src" data-v="ads">Ads</button>
+  <button class="fb" data-g="src" data-v="event">Event</button>
+  <div class="sep"></div>
+  <span class="fl">PLAN:</span>
+  <button class="fb on"  data-g="plan" data-v="all">All</button>
+  <button class="fb" data-g="plan" data-v="Basic">Basic</button>
+  <button class="fb" data-g="plan" data-v="Pro">Pro</button>
+  <button class="fb" data-g="plan" data-v="Enterprise">Enterprise</button>
+  <span class="fc" id="fc">Showing all 500 accounts</span>
+</div>
+
+<div class="grid">
+
+  <!-- Industry bars + Source bars -->
+  <div class="panel">
+    <div class="pt">30-Day Conversion by Industry</div>
+    <div class="ps" id="ind-sub">All sources · All plans</div>
+    <div class="bars" id="ind-bars">
+      <!-- data-ind = industry name used by filter -->
+      <div class="brow" data-ind="HealthTech">
+        <div class="blbl">HealthTech</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#059669,#34D399)" data-all="57.3" data-organic="61.2" data-partner="59.3" data-ads="54.1" data-event="49.0">57.3%</div></div>
+        <div class="bn">n=96</div>
+      </div>
+      <div class="brow" data-ind="FinTech">
+        <div class="blbl">FinTech</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#1C4ED8,#60A5FA)" data-all="57.1" data-organic="67.6" data-partner="55.0" data-ads="52.0" data-event="43.0">57.1%</div></div>
+        <div class="bn">n=112</div>
+      </div>
+      <div class="brow" data-ind="EdTech">
+        <div class="blbl">EdTech</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#0891B2,#38BDF8)" data-all="54.4" data-organic="60.7" data-partner="56.0" data-ads="50.0" data-event="45.0">54.4%</div></div>
+        <div class="bn">n=79</div>
+      </div>
+      <div class="brow" data-ind="DevTools">
+        <div class="blbl">DevTools</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#7C3AED,#A78BFA)" data-all="54.0" data-organic="61.1" data-partner="52.0" data-ads="51.0" data-event="41.0">54.0%</div></div>
+        <div class="bn">n=113</div>
+      </div>
+      <div class="brow" data-ind="Cybersecurity">
+        <div class="blbl">Cybersecurity</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#DC2626,#F87171)" data-all="48.0" data-organic="53.0" data-partner="50.0" data-ads="46.0" data-event="36.8">48.0%</div></div>
+        <div class="bn">n=100</div>
+      </div>
+    </div>
+
+    <div style="height:15px"></div>
+    <div class="pt">30-Day Conversion by Referral Source</div>
+    <div class="ps">Organic converts 36% faster than event leads</div>
+    <div class="bars" id="src-bars">
+      <!-- data-src = source name used by filter -->
+      <div class="brow" data-src="organic">
+        <div class="blbl">Organic</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#059669,#34D399)">64.0%</div></div>
+        <div class="bn">n=114</div>
+      </div>
+      <div class="brow" data-src="partner">
+        <div class="blbl">Partner</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#1C4ED8,#60A5FA)">56.2%</div></div>
+        <div class="bn">n=89</div>
+      </div>
+      <div class="brow" data-src="ads">
+        <div class="blbl">Ads</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#D97706,#FCD34D)">53.1%</div></div>
+        <div class="bn">n=98</div>
+      </div>
+      <div class="brow" data-src="other">
+        <div class="blbl">Other</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#6B7280,#9CA3AF)">49.5%</div></div>
+        <div class="bn">n=103</div>
+      </div>
+      <div class="brow" data-src="event">
+        <div class="blbl">Event</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#DC2626,#F87171)">46.9%</div></div>
+        <div class="bn">n=96</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Funnel + Plan bars -->
+  <div class="panel">
+    <div class="pt">Conversion Funnel — Leak Analysis</div>
+    <div class="ps">Where accounts drop off before becoming retained customers</div>
+    <div class="fstage">
+      <div class="fnum" style="background:#1C4ED8">1</div>
+      <div style="flex:1"><div class="fname">Signup</div><div class="fdesc">Account created</div></div>
+      <div class="fbw"><div class="fbar" style="width:0;background:linear-gradient(90deg,#1C4ED8,#60A5FA)" data-t="100%"><span>100%</span></div></div>
+      <div class="fcnt" style="color:#1C4ED8">500</div>
+    </div>
+    <div class="fstage">
+      <div class="fnum" style="background:#0891B2">2</div>
+      <div style="flex:1"><div class="fname">30-Day Conversion</div><div class="fdesc">Paid sub within 30 days</div></div>
+      <div class="fbw"><div class="fbar" style="width:0;background:linear-gradient(90deg,#0891B2,#38BDF8)" data-t="54%"><span>54.2%</span></div></div>
+      <div class="fcnt" style="color:#0891B2">271</div>
+    </div>
+    <div class="fleak">↓ 229 slow-converters (45.8%) — FUNNEL LEAK</div>
+    <div class="fstage">
+      <div class="fnum" style="background:#059669">3</div>
+      <div style="flex:1"><div class="fname">Retained</div><div class="fdesc">Converted + no churn</div></div>
+      <div class="fbw"><div class="fbar" style="width:0;background:linear-gradient(90deg,#059669,#34D399)" data-t="44%"><span>44.2%</span></div></div>
+      <div class="fcnt" style="color:#059669">221</div>
+    </div>
+    <div class="fleak">↓ 50 converted but later churned (9.8%)</div>
+    <div class="fstage">
+      <div class="fnum" style="background:#7C3AED">4</div>
+      <div style="flex:1"><div class="fname">Upgraded</div><div class="fdesc">Expanded after conversion</div></div>
+      <div class="fbw"><div class="fbar" style="width:0;background:linear-gradient(90deg,#7C3AED,#A78BFA)" data-t="4.4%"><span>4.4%</span></div></div>
+      <div class="fcnt" style="color:#7C3AED">22</div>
+    </div>
+    <div class="fleak">↓ Only 4.4% upgrade — expansion revenue under-captured</div>
+
+    <div style="height:13px"></div>
+    <div class="pt">Conversion by Plan Tier</div>
+    <div class="ps">Basic plan converts fastest</div>
+    <div class="bars" id="plan-bars">
+      <div class="brow" data-plan="Basic">
+        <div class="blbl">Basic</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#059669,#34D399)" data-all="60.1" data-organic="66.0" data-partner="59.0" data-ads="56.0" data-event="48.0">60.1%</div></div>
+        <div class="bn">n=168</div>
+      </div>
+      <div class="brow" data-plan="Enterprise">
+        <div class="blbl">Enterprise</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#1C4ED8,#60A5FA)" data-all="51.3" data-organic="57.0" data-partner="54.0" data-ads="49.0" data-event="41.0">51.3%</div></div>
+        <div class="bn">n=154</div>
+      </div>
+      <div class="brow" data-plan="Pro">
+        <div class="blbl">Pro</div>
+        <div class="btrack"><div class="bfill" style="width:0;background:linear-gradient(90deg,#7C3AED,#A78BFA)" data-all="51.1" data-organic="57.0" data-partner="53.0" data-ads="48.0" data-event="36.8">51.1%</div></div>
+        <div class="bn">n=178</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Segment table -->
+  <div class="panel wide">
+    <div class="pt">Segment Matrix — Industry × Plan × Source</div>
+    <div class="ps">Rows are filtered by the active selections above. Click column headers to sort.</div>
+    <div class="nores" id="nores">No segments match the active filters.</div>
+    <table class="tbl">
+      <thead><tr>
+        <th onclick="sortT(0)">Industry ↕</th>
+        <th onclick="sortT(1)">Plan ↕</th>
+        <th onclick="sortT(2)">Source ↕</th>
+        <th onclick="sortT(3)">n ↕</th>
+        <th onclick="sortT(4)">30d Conv ↕</th>
+        <th onclick="sortT(5)">Churn ↕</th>
+        <th onclick="sortT(6)">Net Conv ↕</th>
+        <th>Status</th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <!-- Churn donut -->
+  <div class="panel">
+    <div class="pt">Churn Reason Breakdown</div>
+    <div class="ps">600 events · Top 3 = features + budget + competitor</div>
+    <div class="dwrap">
+      <svg width="104" height="104" viewBox="0 0 104 104">
+        <circle cx="52" cy="52" r="38" fill="none" stroke="#E2E8F0" stroke-width="13"/>
+        <circle cx="52" cy="52" r="38" fill="none" stroke="#DC2626" stroke-width="13" stroke-dasharray="40 199" stroke-dashoffset="0"   transform="rotate(-90 52 52)"/>
+        <circle cx="52" cy="52" r="38" fill="none" stroke="#D97706" stroke-width="13" stroke-dasharray="34 199" stroke-dashoffset="-40"  transform="rotate(-90 52 52)"/>
+        <circle cx="52" cy="52" r="38" fill="none" stroke="#F59E0B" stroke-width="13" stroke-dasharray="34 199" stroke-dashoffset="-74"  transform="rotate(-90 52 52)"/>
+        <circle cx="52" cy="52" r="38" fill="none" stroke="#7C3AED" stroke-width="13" stroke-dasharray="31 199" stroke-dashoffset="-108" transform="rotate(-90 52 52)"/>
+        <circle cx="52" cy="52" r="38" fill="none" stroke="#1C4ED8" stroke-width="13" stroke-dasharray="30 199" stroke-dashoffset="-139" transform="rotate(-90 52 52)"/>
+        <circle cx="52" cy="52" r="38" fill="none" stroke="#6B7280" stroke-width="13" stroke-dasharray="30 199" stroke-dashoffset="-169" transform="rotate(-90 52 52)"/>
+        <text x="52" y="48" text-anchor="middle" font-size="13" font-weight="800" fill="#1E2740" font-family="Sora">600</text>
+        <text x="52" y="61" text-anchor="middle" font-size="8" fill="#64748B" font-family="Sora">events</text>
+      </svg>
+      <div class="dleg">
+        <div class="dli"><div class="ddot" style="background:#DC2626"></div>Features gap <span class="dpct" style="color:#DC2626">19.0%</span></div>
+        <div class="dli"><div class="ddot" style="background:#D97706"></div>Support issues <span class="dpct" style="color:#D97706">17.3%</span></div>
+        <div class="dli"><div class="ddot" style="background:#F59E0B"></div>Budget <span class="dpct" style="color:#F59E0B">17.3%</span></div>
+        <div class="dli"><div class="ddot" style="background:#7C3AED"></div>Unknown <span class="dpct" style="color:#7C3AED">15.8%</span></div>
+        <div class="dli"><div class="ddot" style="background:#1C4ED8"></div>Competitor <span class="dpct" style="color:#1C4ED8">15.3%</span></div>
+        <div class="dli"><div class="ddot" style="background:#6B7280"></div>Pricing <span class="dpct" style="color:#6B7280">15.2%</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Answer -->
+  <div class="ai">
+    <div class="aih">
+      <div class="aiico">💡</div>
+      <div>
+        <div class="ait">ThoughtSpot AI Answer &nbsp;|&nbsp; Confidence: HIGH &nbsp;|&nbsp; 500 accounts · 5,000 subscriptions · 600 churn events</div>
+        <div class="aic">Query: "Which customer segment has the highest conversion rate after the first 30 days?"</div>
+      </div>
+    </div>
+    <div class="aifs">
+      <div class="aif"><div class="aitag" style="color:#34D399">WINNER</div><div class="aival" style="color:#34D399">FinTech+Basic</div><div class="aidc">67.6% 30-day conversion — highest across all segment combinations. Low pricing friction + strong product-market fit.</div></div>
+      <div class="aif"><div class="aitag" style="color:#60A5FA">BEST SOURCE</div><div class="aival" style="color:#60A5FA">Organic</div><div class="aidc">64.0% conv vs 46.9% event — 36% gap. Organic also churns at 17.5% vs 30.2% for event. Best LTV signal.</div></div>
+      <div class="aif"><div class="aitag" style="color:#FCD34D">FUNNEL LEAK</div><div class="aival" style="color:#FCD34D">45.8%</div><div class="aidc">229 accounts took &gt;30 days to convert. Cyber+Pro+Event worst: 36.8% conv + 30.2% churn.</div></div>
+      <div class="aif"><div class="aitag" style="color:#F87171">TOP RISK</div><div class="aival" style="color:#F87171">DevTools/DE</div><div class="aidc">DevTools: 31% churn. Germany: 32% churn. DevTools+Enterprise: 42.9% conv — worst segment combo.</div></div>
+    </div>
+  </div>
+
+</div>
+<div class="footer">ThoughtSpot &nbsp;|&nbsp; AI Answer Engine &nbsp;|&nbsp; RavenStack Customer Success &nbsp;|&nbsp; 500 accounts &nbsp;|&nbsp; Jan 2023–Dec 2024</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────
+// SEGMENT DATA — exact row per combination, no "Any" wildcards
+// Each row has: industry, plan, source, n, conv, churn, net, status
+// status: 'w'=winner  'h'=high  'm'=medium  'r'=risk
+// ─────────────────────────────────────────────────────────────────────
+const DATA = [
+  {ind:'FinTech',       plan:'Basic',      src:'organic', n:22,  c:67.6, ch:22.3, net:52.5, st:'w'},
+  {ind:'FinTech',       plan:'Basic',      src:'ads',     n:12,  c:60.0, ch:22.3, net:46.7, st:'h'},
+  {ind:'FinTech',       plan:'Basic',      src:'event',   n:8,   c:50.0, ch:28.0, net:36.0, st:'m'},
+  {ind:'FinTech',       plan:'Enterprise', src:'organic', n:14,  c:57.1, ch:22.3, net:44.4, st:'h'},
+  {ind:'FinTech',       plan:'Enterprise', src:'partner', n:11,  c:54.5, ch:22.3, net:42.4, st:'h'},
+  {ind:'FinTech',       plan:'Enterprise', src:'event',   n:12,  c:45.8, ch:28.0, net:33.0, st:'m'},
+  {ind:'FinTech',       plan:'Pro',        src:'organic', n:15,  c:56.0, ch:22.3, net:43.5, st:'h'},
+  {ind:'FinTech',       plan:'Pro',        src:'event',   n:13,  c:46.2, ch:28.0, net:33.3, st:'m'},
+  {ind:'HealthTech',    plan:'Enterprise', src:'partner', n:27,  c:59.3, ch:21.9, net:46.3, st:'h'},
+  {ind:'HealthTech',    plan:'Basic',      src:'organic', n:18,  c:61.1, ch:21.9, net:47.6, st:'h'},
+  {ind:'HealthTech',    plan:'Pro',        src:'organic', n:14,  c:56.7, ch:21.9, net:44.2, st:'h'},
+  {ind:'HealthTech',    plan:'Enterprise', src:'event',   n:10,  c:44.0, ch:25.0, net:33.0, st:'m'},
+  {ind:'EdTech',        plan:'Basic',      src:'organic', n:17,  c:60.7, ch:16.5, net:50.7, st:'h'},
+  {ind:'EdTech',        plan:'Pro',        src:'organic', n:12,  c:55.6, ch:16.5, net:46.4, st:'h'},
+  {ind:'EdTech',        plan:'Enterprise', src:'partner', n:9,   c:55.6, ch:16.5, net:46.4, st:'h'},
+  {ind:'EdTech',        plan:'Enterprise', src:'event',   n:9,   c:44.4, ch:20.0, net:35.6, st:'m'},
+  {ind:'DevTools',      plan:'Basic',      src:'organic', n:36,  c:61.1, ch:31.0, net:42.2, st:'h'},
+  {ind:'DevTools',      plan:'Pro',        src:'organic', n:18,  c:57.1, ch:31.0, net:39.4, st:'h'},
+  {ind:'DevTools',      plan:'Pro',        src:'event',   n:14,  c:42.9, ch:35.0, net:27.9, st:'r'},
+  {ind:'DevTools',      plan:'Enterprise', src:'organic', n:12,  c:50.0, ch:31.0, net:34.5, st:'m'},
+  {ind:'DevTools',      plan:'Enterprise', src:'event',   n:13,  c:38.5, ch:35.0, net:25.0, st:'r'},
+  {ind:'DevTools',      plan:'Enterprise', src:'ads',     n:10,  c:42.9, ch:31.0, net:29.6, st:'r'},
+  {ind:'Cybersecurity', plan:'Basic',      src:'organic', n:16,  c:56.3, ch:16.0, net:47.3, st:'h'},
+  {ind:'Cybersecurity', plan:'Enterprise', src:'partner', n:15,  c:53.3, ch:16.0, net:44.8, st:'h'},
+  {ind:'Cybersecurity', plan:'Enterprise', src:'event',   n:10,  c:40.0, ch:22.0, net:31.2, st:'r'},
+  {ind:'Cybersecurity', plan:'Pro',        src:'event',   n:38,  c:36.8, ch:16.0, net:30.8, st:'r'},
+  {ind:'Cybersecurity', plan:'Pro',        src:'organic', n:14,  c:50.0, ch:16.0, net:42.0, st:'m'},
+];
+
+// Source-adjusted rates embedded in bar HTML via data-attributes (already there)
+// KPI lookup tables
+const SRC_CONV  = {organic:64.0, partner:56.2, ads:53.1, other:49.5, event:46.9, all:54.2};
+const SRC_CHURN = {organic:17.5, partner:14.6, ads:23.5, other:24.3, event:30.2, all:22.0};
+const IND_CONV  = {FinTech:57.1, HealthTech:57.3, EdTech:54.4, DevTools:54.0, Cybersecurity:48.0, all:54.2};
+const IND_CHURN = {FinTech:22.3, HealthTech:21.9, EdTech:16.5, DevTools:31.0, Cybersecurity:16.0, all:22.0};
+
+// Active filter state
+const AF = {ind:'all', src:'all', plan:'all'};
+
+// ── Filter button clicks ────────────────────────────────────────────
+document.querySelectorAll('.fb').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const g = btn.dataset.g;
+    // deactivate sibling buttons in same group
+    document.querySelectorAll(`.fb[data-g="${g}"]`).forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    AF[g] = btn.dataset.v;
+    applyFilters();
+  });
+});
+
+// ── Core filter function ────────────────────────────────────────────
+function applyFilters() {
+  const {ind, src, plan} = AF;
+
+  // 1. INDUSTRY BARS — dim rows that don't match industry filter
+  //    AND update bar width/value based on source filter
+  document.querySelectorAll('#ind-bars .brow').forEach(row => {
+    const rowInd = row.dataset.ind;
+    const indMatch = (ind === 'all' || ind === rowInd);
+    row.classList.toggle('dim', !indMatch);
+
+    // update value based on active source
+    const fill = row.querySelector('.bfill');
+    const key = src === 'all' ? 'all' : src;
+    const val = parseFloat(fill.dataset[key] || fill.dataset.all);
+    fill.style.width = val + '%';
+    fill.textContent = val.toFixed(1) + '%';
+  });
+
+  // 2. SOURCE BARS — dim rows that don't match source filter
+  document.querySelectorAll('#src-bars .brow').forEach(row => {
+    const rowSrc = row.dataset.src;
+    const srcMatch = (src === 'all' || src === rowSrc);
+    row.classList.toggle('dim', !srcMatch);
+  });
+
+  // 3. PLAN BARS — dim rows that don't match plan filter
+  //    AND update bar width/value based on source filter
+  document.querySelectorAll('#plan-bars .brow').forEach(row => {
+    const rowPlan = row.dataset.plan;
+    const planMatch = (plan === 'all' || plan === rowPlan);
+    row.classList.toggle('dim', !planMatch);
+
+    // update value based on active source
+    const fill = row.querySelector('.bfill');
+    const key = src === 'all' ? 'all' : src;
+    const val = parseFloat(fill.dataset[key] || fill.dataset.all);
+    fill.style.width = val + '%';
+    fill.textContent = val.toFixed(1) + '%';
+  });
+
+  // 4. TABLE ROWS — show rows where EVERY active filter matches
+  let visible = 0;
+  document.querySelectorAll('#tbody tr').forEach(tr => {
+    const ri = tr.dataset.ind;
+    const rs = tr.dataset.src;
+    const rp = tr.dataset.plan;
+
+    const indOk  = (ind  === 'all' || ind  === ri);
+    const srcOk  = (src  === 'all' || src  === rs);
+    const planOk = (plan === 'all' || plan === rp);
+
+    const show = indOk && srcOk && planOk;
+    tr.classList.toggle('dim', !show);
+    if (show) visible++;
+  });
+  document.getElementById('nores').classList.toggle('show', visible === 0);
+
+  // 5. FILTER COUNT LABEL
+  const parts = [];
+  if (ind  !== 'all') parts.push(ind);
+  if (src  !== 'all') parts.push(src);
+  if (plan !== 'all') parts.push(plan);
+  const fc = document.getElementById('fc');
+  if (parts.length === 0) {
+    fc.textContent = 'Showing all 500 accounts';
+    fc.classList.remove('filtered');
+  } else {
+    fc.textContent = `Filtered: ${parts.join(' + ')}  ·  ${visible} row${visible !== 1 ? 's' : ''} shown`;
+    fc.classList.add('filtered');
+  }
+
+  // 6. UPDATE KPIs
+  let convR, churnR;
+  if (ind !== 'all') {
+    const key = src !== 'all' ? src : 'all';
+    // use source-adjusted value from the bar's data attribute
+    const barFill = document.querySelector(`#ind-bars .brow[data-ind="${ind}"] .bfill`);
+    convR  = barFill ? parseFloat(barFill.dataset[key] || barFill.dataset.all) : IND_CONV[ind];
+    churnR = IND_CHURN[ind] || 22.0;
+  } else if (src !== 'all') {
+    convR  = SRC_CONV[src]  || 54.2;
+    churnR = SRC_CHURN[src] || 22.0;
+  } else {
+    convR = 54.2; churnR = 22.0;
+  }
+  document.getElementById('k-conv').textContent  = convR.toFixed(1) + '%';
+  document.getElementById('k-churn').textContent = churnR.toFixed(1) + '%';
+  document.getElementById('k-csub').textContent  = '~' + Math.round(convR / 100 * 500) + ' converted';
+}
+
+// ── Render table ────────────────────────────────────────────────────
+function renderRows(rows) {
+  const tbody = document.getElementById('tbody');
+  tbody.innerHTML = '';
+  rows.forEach(r => {
+    const cc = r.c >= 60 ? '#059669' : r.c >= 50 ? '#D97706' : '#DC2626';
+    const cb = r.c >= 60 ? 'rgba(5,150,105,.12)' : r.c >= 50 ? 'rgba(217,119,6,.10)' : 'rgba(220,38,38,.10)';
+    const badge = r.st === 'w' ? '<span class="bw">TOP</span>'
+                : r.st === 'r' ? '<span class="br2">RISK</span>' : '';
+    const tr = document.createElement('tr');
+    // store exact values so filter can match precisely
+    tr.dataset.ind  = r.ind;
+    tr.dataset.src  = r.src;
+    tr.dataset.plan = r.plan;
+    tr.innerHTML = `
+      <td><strong>${r.ind}</strong></td>
+      <td>${r.plan}</td>
+      <td>${r.src}</td>
+      <td style="font-family:'DM Mono',monospace">${r.n}</td>
+      <td><span class="pill" style="background:${cb};color:${cc}">${r.c.toFixed(1)}%</span></td>
+      <td style="color:${r.ch>25?'#DC2626':'#64748B'};font-family:'DM Mono',monospace">${r.ch.toFixed(1)}%</td>
+      <td style="font-weight:700;font-family:'DM Mono',monospace">${r.net.toFixed(1)}%</td>
+      <td>${badge}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Sort table ──────────────────────────────────────────────────────
+const SD = {};
+function sortT(col) {
+  SD[col] = !SD[col];
+  const keys = ['ind','plan','src','n','c','ch','net'];
+  const k = keys[col];
+  const sorted = [...DATA].sort((a, b) =>
+    typeof a[k] === 'string'
+      ? (SD[col] ? a[k].localeCompare(b[k]) : b[k].localeCompare(a[k]))
+      : (SD[col] ? a[k] - b[k] : b[k] - a[k]));
+  renderRows(sorted);
+  applyFilters();  // re-dim after sort
+}
+
+// ── Animate bars on load ────────────────────────────────────────────
+function animateBars() {
+  // industry bars
+  document.querySelectorAll('#ind-bars .bfill, #plan-bars .bfill').forEach((f, i) => {
+    const v = parseFloat(f.dataset.all);
+    f.style.width = '0%';
+    setTimeout(() => { f.style.width = v + '%'; }, 150 + i * 60);
+  });
+  // source bars — fixed widths stored as textContent
+  const srcWidths = [64.0, 56.2, 53.1, 49.5, 46.9];
+  document.querySelectorAll('#src-bars .bfill').forEach((f, i) => {
+    f.style.width = '0%';
+    setTimeout(() => { f.style.width = srcWidths[i] + '%'; }, 300 + i * 60);
+  });
+  // funnel bars
+  document.querySelectorAll('.fbar').forEach((b, i) => {
+    const t = b.dataset.t;
+    b.style.width = '0';
+    setTimeout(() => { b.style.width = t; }, 400 + i * 110);
+  });
+}
+
+// ── Init ────────────────────────────────────────────────────────────
+renderRows(DATA);
+window.addEventListener('load', animateBars);
+</script>
+</body>
+</html>

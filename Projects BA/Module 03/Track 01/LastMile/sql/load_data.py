@@ -1,16 +1,15 @@
-"""
-Load the DataCo CSV into a SQLite database following the 3NF schema.
-This validates that the schema actually fits the data and produces working
-analytical queries.
-"""
+
 import pandas as pd
 import sqlite3
 import re
 from pathlib import Path
 
-DATA = Path("../../dataset/DataCoSupplyChainDataset.csv")
-DB   = Path("../../dataset/dataco.db")
-SCHEMA_SQL = Path("schema.sql").read_text()
+BASE_DIR = Path(__file__).resolve().parent
+
+DATA = BASE_DIR / "../../dataset/DataCoSupplyChainDataset.csv"
+DB   = BASE_DIR / "../../dataset/dataco.db"
+SCHEMA_SQL = (BASE_DIR / "schema.sql").read_text()
+
 
 # SQLite-compatible version (drop CHECK constraints with CASE, drop SERIAL, etc.)
 def to_sqlite_ddl(pg_ddl):

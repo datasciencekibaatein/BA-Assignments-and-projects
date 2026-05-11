@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Microsoft Fabric — WACC Real-Time Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:       #050A14;
+  --surface:  #0A1628;
+  --surface2: #0F1F38;
+  --surface3: #132440;
+  --fab-blue: #0078D4;
+  --fab-cyan: #00B4D8;
+  --fab-teal: #00B294;
+  --fab-gold: #FFB900;
+  --fab-red:  #D13438;
+  --fab-grn:  #107C10;
+  --fab-purp: #8764B8;
+  --txt:      #E8F0FE;
+  --txt2:     #8BACC8;
+  --txt3:     #4A6580;
+  --border:   #1A3050;
+  --glow:     rgba(0,180,216,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  font-family:'IBM Plex Sans',sans-serif;
+  background:var(--bg);
+  color:var(--txt);
+  min-height:100vh;
+  overflow-x:hidden;
+}
+/* Scanline texture */
+body::before{
+  content:'';position:fixed;inset:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,120,212,.015) 2px,rgba(0,120,212,.015) 4px);
+  pointer-events:none;z-index:0;
+}
+
+/* ── Header ── */
+.header{
+  background:linear-gradient(135deg,#071830 0%,#0A2040 60%,#071830 100%);
+  border-bottom:1px solid var(--border);
+  padding:0 28px;
+  height:58px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:sticky;top:0;z-index:100;
+}
+.header-left{display:flex;align-items:center;gap:14px;}
+.fabric-logo{
+  display:flex;align-items:center;gap:8px;
+  font-family:'IBM Plex Mono',monospace;
+  font-size:13px;font-weight:600;color:var(--fab-cyan);
+  letter-spacing:.5px;
+}
+.fabric-logo-sq{
+  width:28px;height:28px;border-radius:6px;
+  background:linear-gradient(135deg,var(--fab-blue),var(--fab-cyan));
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:white;
+}
+.header-sep{width:1px;height:24px;background:var(--border);}
+.workspace-tag{font-size:11.5px;color:var(--txt2);font-family:'IBM Plex Mono',monospace;}
+.status-pill{
+  display:flex;align-items:center;gap:6px;
+  background:rgba(16,124,16,.12);border:1px solid rgba(16,124,16,.3);
+  color:#4EC94E;font-size:10.5px;padding:3px 10px;border-radius:20px;
+  font-family:'IBM Plex Mono',monospace;
+}
+.pulse{width:7px;height:7px;border-radius:50%;background:#4EC94E;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── Toolbar ── */
+.toolbar{
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:8px 28px;
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+}
+.tb-label{font-size:10px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;letter-spacing:.8px;text-transform:uppercase;}
+.tb-select{
+  background:var(--surface2);border:1px solid var(--border);
+  color:var(--txt);font-family:'IBM Plex Mono',monospace;font-size:11.5px;
+  padding:4px 10px;border-radius:5px;cursor:pointer;transition:border-color .2s;
+}
+.tb-select:hover,.tb-select:focus{border-color:var(--fab-cyan);outline:none;}
+.tb-sep{width:1px;height:20px;background:var(--border);margin:0 4px;}
+.refresh-btn{
+  background:linear-gradient(135deg,var(--fab-blue),#005A9E);
+  color:white;border:none;font-family:'IBM Plex Mono',monospace;font-size:11px;
+  padding:5px 14px;border-radius:5px;cursor:pointer;transition:all .2s;
+  display:flex;align-items:center;gap:5px;
+}
+.refresh-btn:hover{transform:translateY(-1px);box-shadow:0 4px 14px rgba(0,120,212,.4);}
+
+/* ── KPI Row ── */
+.kpi-row{
+  display:grid;grid-template-columns:repeat(6,1fr);gap:1px;
+  background:var(--border);border-bottom:1px solid var(--border);
+}
+.kpi{
+  background:var(--surface);padding:16px 18px;
+  border-right:1px solid transparent;
+  transition:background .2s;cursor:default;
+  position:relative;overflow:hidden;
+}
+.kpi::before{
+  content:'';position:absolute;bottom:0;left:0;right:0;height:2px;
+  background:var(--accent-color,var(--fab-blue));
+  transform:scaleX(0);transition:transform .3s;transform-origin:left;
+}
+.kpi:hover{background:var(--surface2);}
+.kpi:hover::before{transform:scaleX(1);}
+.kpi-label{font-size:9.5px;color:var(--txt3);letter-spacing:1.2px;text-transform:uppercase;font-family:'IBM Plex Mono',monospace;margin-bottom:6px;}
+.kpi-val{font-size:26px;font-weight:700;font-family:'IBM Plex Mono',monospace;line-height:1;}
+.kpi-sub{font-size:10px;color:var(--txt2);margin-top:5px;font-family:'IBM Plex Mono',monospace;}
+.kpi-delta{font-size:10px;font-family:'IBM Plex Mono',monospace;margin-top:3px;}
+.up{color:#4EC94E;} .dn{color:var(--fab-red);}
+
+/* ── Main grid ── */
+.main{
+  display:grid;
+  grid-template-columns:1fr 1fr 340px;
+  grid-template-rows:auto auto;
+  gap:1px;background:var(--border);
+  flex:1;
+}
+.card{
+  background:var(--surface);padding:20px 22px;
+  position:relative;overflow:hidden;
+}
+.card-title{
+  font-size:11px;color:var(--txt2);letter-spacing:1px;text-transform:uppercase;
+  font-family:'IBM Plex Mono',monospace;margin-bottom:14px;
+  display:flex;align-items:center;gap:8px;
+}
+.card-title::before{
+  content:'';width:3px;height:12px;border-radius:2px;background:var(--fab-cyan);flex-shrink:0;
+}
+
+/* ── Chart canvas area ── */
+.chart-area{position:relative;width:100%;height:260px;}
+svg.chart{width:100%;height:100%;}
+
+/* ── Legend ── */
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--txt2);font-family:'IBM Plex Mono',monospace;}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+/* ── WACC gauge ── */
+.gauge-wrap{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 0;}
+
+/* ── Component bars ── */
+.comp-bars{display:flex;flex-direction:column;gap:10px;margin-top:4px;}
+.cbar-row{display:flex;align-items:center;gap:10px;}
+.cbar-lbl{font-size:10.5px;color:var(--txt2);width:110px;flex-shrink:0;font-family:'IBM Plex Mono',monospace;}
+.cbar-track{flex:1;height:20px;background:var(--surface2);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.cbar-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:7px;font-size:9.5px;font-weight:600;color:white;font-family:'IBM Plex Mono',monospace;transition:width 1.4s cubic-bezier(.4,0,.2,1);}
+.cbar-val{font-size:10.5px;color:var(--txt);width:50px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+
+/* ── Multi-company grid ── */
+.co-grid{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
+.co-row{
+  display:flex;align-items:center;gap:10px;padding:8px 10px;
+  background:var(--surface2);border-radius:5px;border:1px solid var(--border);
+  transition:border-color .2s,background .2s;cursor:pointer;
+}
+.co-row:hover{border-color:var(--fab-cyan);background:var(--surface3);}
+.co-row.active{border-color:var(--fab-cyan);background:var(--surface3);}
+.co-ticker{font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:var(--fab-cyan);width:46px;}
+.co-bar-wrap{flex:1;height:14px;background:var(--surface);border-radius:2px;overflow:hidden;}
+.co-bar{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.4,0,.2,1);}
+.co-wacc{font-family:'IBM Plex Mono',monospace;font-size:11.5px;font-weight:600;width:52px;text-align:right;}
+
+/* ── Waterfall ── */
+.wf-wrap{display:flex;flex-direction:column;gap:7px;margin-top:4px;}
+.wf-row{display:flex;align-items:center;gap:10px;}
+.wf-lbl{font-size:10px;color:var(--txt2);width:130px;flex-shrink:0;font-family:'IBM Plex Mono',monospace;}
+.wf-track{flex:1;height:22px;background:var(--surface2);border-radius:3px;position:relative;border:1px solid var(--border);}
+.wf-bar{height:100%;border-radius:3px;position:absolute;left:0;top:0;display:flex;align-items:center;transition:width 1.4s cubic-bezier(.4,0,.2,1);}
+.wf-bar span{padding-left:7px;font-size:9.5px;font-weight:600;color:white;font-family:'IBM Plex Mono',monospace;white-space:nowrap;}
+.wf-val{font-size:10.5px;color:var(--txt);width:56px;text-align:right;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+
+/* ── Data table ── */
+.data-table{width:100%;border-collapse:collapse;font-size:10.5px;}
+.data-table th{padding:6px 10px;text-align:left;background:var(--surface2);color:var(--txt3);
+  font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:.8px;text-transform:uppercase;
+  border-bottom:1px solid var(--border);cursor:pointer;}
+.data-table th:hover{color:var(--fab-cyan);}
+.data-table td{padding:7px 10px;border-bottom:1px solid rgba(26,48,80,.5);font-family:'IBM Plex Mono',monospace;transition:background .15s;}
+.data-table tr:hover td{background:var(--surface2);}
+.data-table tr.active-yr td{background:var(--surface3);border-left:2px solid var(--fab-cyan);}
+
+/* ── Pipeline widget ── */
+.pipeline{display:flex;flex-direction:column;gap:6px;margin-top:6px;}
+.pipe-step{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  background:var(--surface2);border-radius:5px;border:1px solid var(--border);
+  position:relative;transition:border-color .2s;
+}
+.pipe-step.done{border-color:rgba(16,124,16,.4);}
+.pipe-step.running{border-color:rgba(0,180,216,.4);animation:runpulse 2s infinite;}
+.pipe-step.pending{opacity:.45;}
+@keyframes runpulse{0%,100%{border-color:rgba(0,180,216,.4)}50%{border-color:rgba(0,180,216,.8)}}
+.pipe-icon{width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0;}
+.pipe-info{flex:1;}
+.pipe-name{font-size:11px;font-weight:600;color:var(--txt);font-family:'IBM Plex Mono',monospace;}
+.pipe-desc{font-size:9.5px;color:var(--txt2);}
+.pipe-badge{font-size:9px;padding:2px 8px;border-radius:10px;font-family:'IBM Plex Mono',monospace;font-weight:600;}
+.badge-done{background:rgba(16,124,16,.15);color:#4EC94E;border:1px solid rgba(16,124,16,.3);}
+.badge-run{background:rgba(0,180,216,.12);color:var(--fab-cyan);border:1px solid rgba(0,180,216,.25);}
+.badge-pend{background:rgba(74,101,128,.1);color:var(--txt3);border:1px solid var(--border);}
+
+.footer{background:var(--surface);border-top:1px solid var(--border);padding:8px 28px;display:flex;align-items:center;justify-content:space-between;}
+.footer-txt{font-size:10px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;}
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="fabric-logo">
+      <div class="fabric-logo-sq">F</div>
+      Microsoft Fabric
+    </div>
+    <div class="header-sep"></div>
+    <div class="workspace-tag">Workspace: Capital Analytics &nbsp;|&nbsp; Item: WACC RT Dashboard</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div class="status-pill"><div class="pulse"></div>Pipeline Running</div>
+    <div style="font-size:10.5px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- Toolbar -->
+<div class="toolbar">
+  <span class="tb-label">Company:</span>
+  <select class="tb-select" id="co-select" onchange="switchCompany(this.value)">
+    <option value="MSFT">MSFT — Microsoft</option>
+    <option value="AAPL">AAPL — Apple</option>
+    <option value="GOOG">GOOG — Alphabet</option>
+    <option value="NVDA">NVDA — NVIDIA</option>
+  </select>
+  <div class="tb-sep"></div>
+  <span class="tb-label">Period:</span>
+  <select class="tb-select" id="yr-range">
+    <option value="all">2009 – 2023 (Full)</option>
+    <option value="5yr">Last 5 Years</option>
+    <option value="10yr">Last 10 Years</option>
+  </select>
+  <div class="tb-sep"></div>
+  <span class="tb-label">ERP:</span>
+  <select class="tb-select" id="erp-sel" onchange="recalc()">
+    <option value="0.055">5.5% (Historical Avg)</option>
+    <option value="0.045">4.5% (Conservative)</option>
+    <option value="0.065">6.5% (Aggressive)</option>
+  </select>
+  <div class="tb-sep"></div>
+  <button class="refresh-btn" onclick="animateAll()">↻ &nbsp;Refresh</button>
+  <span style="margin-left:auto;font-size:10px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;">DirectLake · OneLake · Real-Time Hub</span>
+</div>
+
+<!-- KPI Row -->
+<div class="kpi-row">
+  <div class="kpi" style="--accent-color:var(--fab-cyan)">
+    <div class="kpi-label">Current WACC</div>
+    <div class="kpi-val" style="color:var(--fab-cyan)" id="k-wacc">8.98%</div>
+    <div class="kpi-sub">FY 2023 — MSFT</div>
+    <div class="kpi-delta up" id="k-wacc-d">▲ +1.12pp vs 2022</div>
+  </div>
+  <div class="kpi" style="--accent-color:var(--fab-blue)">
+    <div class="kpi-label">Cost of Equity (Kₑ)</div>
+    <div class="kpi-val" style="color:var(--fab-blue)" id="k-ke">9.04%</div>
+    <div class="kpi-sub">CAPM · Beta 0.88 · Rf 4.2%</div>
+    <div class="kpi-delta up">▲ CAPM-derived</div>
+  </div>
+  <div class="kpi" style="--accent-color:var(--fab-teal)">
+    <div class="kpi-label">Cost of Debt (K_d)</div>
+    <div class="kpi-val" style="color:var(--fab-teal)" id="k-kd">7.20%</div>
+    <div class="kpi-sub">Rf + credit spread</div>
+    <div class="kpi-delta up">▲ Rising rate env.</div>
+  </div>
+  <div class="kpi" style="--accent-color:var(--fab-gold)">
+    <div class="kpi-label">Equity Weight (Wₑ)</div>
+    <div class="kpi-val" style="color:var(--fab-gold)" id="k-we">98.1%</div>
+    <div class="kpi-sub">Market cap dominated</div>
+    <div class="kpi-delta up">▲ +0.8pp vs 2022</div>
+  </div>
+  <div class="kpi" style="--accent-color:var(--fab-purp)">
+    <div class="kpi-label">Debt Weight (W_d)</div>
+    <div class="kpi-val" style="color:var(--fab-purp)" id="k-wd">1.9%</div>
+    <div class="kpi-sub">Minimal leverage</div>
+    <div class="kpi-delta dn">▼ -0.8pp vs 2022</div>
+  </div>
+  <div class="kpi" style="--accent-color:var(--fab-grn)">
+    <div class="kpi-label">Effective Tax Rate</div>
+    <div class="kpi-val" style="color:var(--fab-grn)" id="k-tax">18.0%</div>
+    <div class="kpi-sub">FY2023 effective rate</div>
+    <div class="kpi-delta">— Stable</div>
+  </div>
+</div>
+
+<!-- Main content -->
+<div class="main" style="min-height:580px;">
+
+  <!-- Chart 1: WACC trend line -->
+  <div class="card" style="grid-column:1/3;grid-row:1/2;">
+    <div class="card-title">WACC Historical Trend — MSFT 2009–2023 &nbsp;|&nbsp; CAPM-based Cost of Equity</div>
+    <div class="chart-area" id="trend-chart">
+      <svg class="chart" id="trend-svg" viewBox="0 0 680 240" preserveAspectRatio="none"></svg>
+    </div>
+    <div class="legend">
+      <div class="leg-item"><div class="leg-dot" style="background:var(--fab-cyan)"></div>WACC</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--fab-blue)"></div>Cost of Equity (Kₑ)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:var(--fab-teal)"></div>Cost of Debt (K_d)</div>
+      <div class="leg-item"><div class="leg-dot" style="background:rgba(255,185,0,.35);border-radius:1px;width:14px;height:8px;"></div>Risk-Free Rate</div>
+    </div>
+  </div>
+
+  <!-- Right: WACC Gauge + pipeline -->
+  <div class="card" style="grid-column:3/4;grid-row:1/3;">
+    <div class="card-title">WACC Gauge — FY2023</div>
+    <div class="gauge-wrap">
+      <svg width="200" height="120" viewBox="0 0 200 120">
+        <defs>
+          <linearGradient id="gaugeGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#107C10"/>
+            <stop offset="40%" stop-color="#FFB900"/>
+            <stop offset="75%" stop-color="#D13438"/>
+            <stop offset="100%" stop-color="#8764B8"/>
+          </linearGradient>
+        </defs>
+        <!-- Background arc -->
+        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="#1A3050" stroke-width="18" stroke-linecap="round"/>
+        <!-- Colored arc -->
+        <path d="M 20 100 A 80 80 0 0 1 180 100" fill="none" stroke="url(#gaugeGrad)" stroke-width="18" stroke-linecap="round"/>
+        <!-- Needle at 8.98% — roughly 68% of 0-13% range = 122deg from 180 -->
+        <g id="needle" transform="rotate(112, 100, 100)">
+          <line x1="100" y1="100" x2="100" y2="28" stroke="var(--fab-cyan)" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="100" cy="100" r="5" fill="var(--fab-cyan)"/>
+        </g>
+        <!-- Labels -->
+        <text x="14" y="118" font-size="9" fill="#4A6580" font-family="IBM Plex Mono">0%</text>
+        <text x="90" y="20" font-size="9" fill="#4A6580" font-family="IBM Plex Mono">6.5%</text>
+        <text x="170" y="118" font-size="9" fill="#4A6580" font-family="IBM Plex Mono">13%</text>
+        <text x="100" y="72" text-anchor="middle" font-size="22" font-weight="700" fill="#00B4D8" font-family="IBM Plex Mono">8.98%</text>
+        <text x="100" y="88" text-anchor="middle" font-size="9" fill="#8BACC8" font-family="IBM Plex Mono">WACC FY2023</text>
+      </svg>
+      <div style="display:flex;gap:18px;margin-top:2px;">
+        <div style="text-align:center">
+          <div style="font-size:9px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;">5-YR LOW</div>
+          <div style="font-size:14px;font-weight:700;color:var(--fab-grn);font-family:'IBM Plex Mono',monospace;">5.32%</div>
+          <div style="font-size:9px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;">2020</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;">5-YR HIGH</div>
+          <div style="font-size:14px;font-weight:700;color:var(--fab-red);font-family:'IBM Plex Mono',monospace;">8.98%</div>
+          <div style="font-size:9px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;">2023</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;">15-YR AVG</div>
+          <div style="font-size:14px;font-weight:700;color:var(--fab-gold);font-family:'IBM Plex Mono',monospace;">7.02%</div>
+          <div style="font-size:9px;color:var(--txt3);font-family:'IBM Plex Mono',monospace;">2009-23</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="height:14px;"></div>
+    <div class="card-title">Fabric Pipeline Status</div>
+    <div class="pipeline">
+      <div class="pipe-step done">
+        <div class="pipe-icon" style="background:rgba(16,124,16,.15)">📥</div>
+        <div class="pipe-info">
+          <div class="pipe-name">Ingest · Financial_Statements.csv</div>
+          <div class="pipe-desc">161 rows · 23 cols · OneLake Delta</div>
+        </div>
+        <div class="pipe-badge badge-done">DONE</div>
+      </div>
+      <div class="pipe-step done">
+        <div class="pipe-icon" style="background:rgba(16,124,16,.15)">📥</div>
+        <div class="pipe-info">
+          <div class="pipe-name">Ingest · MSFT.csv (Price History)</div>
+          <div class="pipe-desc">8,584 rows · 7 cols · 1986–2020</div>
+        </div>
+        <div class="pipe-badge badge-done">DONE</div>
+      </div>
+      <div class="pipe-step done">
+        <div class="pipe-icon" style="background:rgba(16,124,16,.15)">⚙️</div>
+        <div class="pipe-info">
+          <div class="pipe-name">Dataflow Gen2 · WACC Compute</div>
+          <div class="pipe-desc">CAPM · Capital weights · Tax shield</div>
+        </div>
+        <div class="pipe-badge badge-done">DONE</div>
+      </div>
+      <div class="pipe-step running">
+        <div class="pipe-icon" style="background:rgba(0,180,216,.1)">📊</div>
+        <div class="pipe-info">
+          <div class="pipe-name">Semantic Model · Power BI</div>
+          <div class="pipe-desc">DirectLake mode · Auto-refresh 5m</div>
+        </div>
+        <div class="pipe-badge badge-run">RUNNING</div>
+      </div>
+      <div class="pipe-step pending">
+        <div class="pipe-icon" style="background:rgba(74,101,128,.1)">🔔</div>
+        <div class="pipe-info">
+          <div class="pipe-name">Activator Alert · WACC &gt; 10%</div>
+          <div class="pipe-desc">Teams notification · Webhook</div>
+        </div>
+        <div class="pipe-badge badge-pend">PENDING</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 2: WACC components waterfall -->
+  <div class="card" style="grid-column:1/2;grid-row:2/3;">
+    <div class="card-title">WACC Component Decomposition — FY2023</div>
+    <div class="wf-wrap">
+      <div class="wf-row">
+        <div class="wf-lbl">Risk-Free Rate (Rf)</div>
+        <div class="wf-track"><div class="wf-bar" style="background:linear-gradient(90deg,#1A3050,#1E4060);width:0" data-w="46.9"><span>4.20%</span></div></div>
+        <div class="wf-val">4.20%</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-lbl">Beta × ERP</div>
+        <div class="wf-track"><div class="wf-bar" style="background:linear-gradient(90deg,#1C4ED8,#3B82F6);width:0" data-w="53.4"><span>4.84%</span></div></div>
+        <div class="wf-val">4.84%</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-lbl">= Cost of Equity (Kₑ)</div>
+        <div class="wf-track" style="border-color:var(--fab-blue)"><div class="wf-bar" style="background:linear-gradient(90deg,var(--fab-blue),var(--fab-cyan));width:0" data-w="100"><span>9.04%</span></div></div>
+        <div class="wf-val" style="color:var(--fab-cyan)">9.04%</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-lbl">Equity Weight (Wₑ)</div>
+        <div class="wf-track"><div class="wf-bar" style="background:linear-gradient(90deg,#FFB900,#FFC933);width:0" data-w="98.1"><span>98.1%</span></div></div>
+        <div class="wf-val" style="color:var(--fab-gold)">98.1%</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-lbl">Wₑ × Kₑ</div>
+        <div class="wf-track" style="border-color:rgba(0,180,216,.3)"><div class="wf-bar" style="background:linear-gradient(90deg,#00607A,var(--fab-cyan));width:0" data-w="97.7"><span>= 8.87%</span></div></div>
+        <div class="wf-val" style="color:var(--fab-cyan)">8.87%</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-lbl">Kd × Wd × (1−T)</div>
+        <div class="wf-track"><div class="wf-bar" style="background:linear-gradient(90deg,#5B21B6,#8764B8);width:0" data-w="11.2"><span>= 0.11%</span></div></div>
+        <div class="wf-val">0.11%</div>
+      </div>
+      <div class="wf-row">
+        <div class="wf-lbl" style="color:var(--fab-cyan);font-weight:600;">= WACC</div>
+        <div class="wf-track" style="border-color:var(--fab-cyan)"><div class="wf-bar" style="background:linear-gradient(90deg,#007A9A,var(--fab-cyan));width:0" data-w="98.0"><span style="font-weight:700">= 8.98%</span></div></div>
+        <div class="wf-val" style="color:var(--fab-cyan);font-weight:700;">8.98%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart 3: Peer comparison -->
+  <div class="card" style="grid-column:2/3;grid-row:2/3;">
+    <div class="card-title">Peer WACC Comparison — FY2022</div>
+    <div class="co-grid" id="co-grid">
+      <!-- injected by JS -->
+    </div>
+  </div>
+
+</div>
+
+<!-- Data table row -->
+<div style="background:var(--surface);border-top:1px solid var(--border);padding:16px 22px;">
+  <div class="card-title" style="margin-bottom:12px;">Historical WACC Table — MSFT 2009–2023 &nbsp;|&nbsp; All rates in %</div>
+  <table class="data-table" id="wacc-table">
+    <thead>
+      <tr>
+        <th>Year</th><th>WACC %</th><th>Kₑ %</th><th>K_d %</th>
+        <th>Wₑ %</th><th>W_d %</th><th>Beta</th><th>Rf %</th>
+        <th>Tax %</th><th>Mkt Cap $B</th><th>D/E Ratio</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<div class="footer">
+  <div class="footer-txt">Microsoft Fabric &nbsp;|&nbsp; Real-Time Intelligence &nbsp;|&nbsp; DirectLake Mode &nbsp;|&nbsp; OneLake · Delta Parquet</div>
+  <div class="footer-txt">WACC = Wₑ·Kₑ + Wd·Kd·(1−T) &nbsp;|&nbsp; Kₑ via CAPM: Rf + β·ERP &nbsp;|&nbsp; Data: Financial_Statements.csv + MSFT.csv</div>
+</div>
+
+<script>
+// ── Data ────────────────────────────────────────────────────────────
+const WACC_DATA = [
+  {yr:2009,wacc:8.31,ke:8.37,kd:7.20,we:97.92,wd:2.08,beta:0.85,rf:3.70,tax:28.0,mktcap:270.6, de:0.145},
+  {yr:2010,wacc:7.34,ke:7.41,kd:5.90,we:97.57,wd:2.43,beta:0.82,rf:2.90,tax:25.0,mktcap:238.8, de:0.129},
+  {yr:2011,wacc:6.25,ke:6.40,kd:4.50,we:94.82,wd:5.18,beta:0.80,rf:2.00,tax:22.0,mktcap:218.4, de:0.209},
+  {yr:2012,wacc:6.00,ke:6.14,kd:4.30,we:94.95,wd:5.05,beta:0.79,rf:1.80,tax:24.0,mktcap:224.8, de:0.180},
+  {yr:2013,wacc:7.30,ke:7.46,kd:5.20,we:95.24,wd:4.76,beta:0.81,rf:3.00,tax:21.0,mktcap:312.3, de:0.198},
+  {yr:2014,wacc:6.88,ke:7.06,kd:4.70,we:94.42,wd:5.58,beta:0.83,rf:2.50,tax:21.0,mktcap:382.9, de:0.252},
+  {yr:2015,wacc:6.58,ke:6.88,kd:4.40,we:92.62,wd:7.38,beta:0.85,rf:2.20,tax:34.0,mktcap:443.2, de:0.441},
+  {yr:2016,wacc:6.39,ke:6.75,kd:4.00,we:90.04,wd:9.96,beta:0.90,rf:1.80,tax:21.0,mktcap:483.2, de:0.743},
+  {yr:2017,wacc:6.84,ke:7.46,kd:4.60,we:88.45,wd:11.55,beta:0.92,rf:2.40,tax:55.0,mktcap:659.9, de:0.983},
+  {yr:2018,wacc:7.62,ke:8.12,kd:5.40,we:91.09,wd:8.91,beta:0.95,rf:2.90,tax:55.0,mktcap:779.7, de:0.922},
+  {yr:2019,wacc:7.28,ke:7.49,kd:4.60,we:94.34,wd:5.66,beta:0.98,rf:2.10,tax:17.0,mktcap:1203.1,de:0.705},
+  {yr:2020,wacc:5.32,ke:5.41,kd:3.40,we:96.37,wd:3.63,beta:0.82,rf:0.90,tax:17.0,mktcap:1681.6,de:0.535},
+  {yr:2021,wacc:6.10,ke:6.18,kd:3.50,we:97.75,wd:2.25,beta:0.85,rf:1.50,tax:16.0,mktcap:2525.1,de:0.410},
+  {yr:2022,wacc:7.86,ke:7.95,kd:5.50,we:97.29,wd:2.71,beta:0.90,rf:3.00,tax:19.0,mktcap:1787.7,de:0.299},
+  {yr:2023,wacc:8.98,ke:9.04,kd:7.20,we:98.11,wd:1.89,beta:0.88,rf:4.20,tax:18.0,mktcap:2451.2,de:0.229},
+];
+
+const PEERS = [
+  {ticker:'BCS',  wacc:4.55,color:'#4A6580'},
+  {ticker:'PCG',  wacc:6.18,color:'#107C10'},
+  {ticker:'AIG',  wacc:6.98,color:'#00B294'},
+  {ticker:'INTC', wacc:7.34,color:'#0078D4'},
+  {ticker:'MCD',  wacc:7.83,color:'#FFB900'},
+  {ticker:'PYPL', wacc:8.03,color:'#8764B8'},
+  {ticker:'AMZN', wacc:8.20,color:'#D97706'},
+  {ticker:'AAPL', wacc:8.27,color:'#A0A0A0'},
+  {ticker:'NVDA', wacc:8.38,color:'#76B900'},
+  {ticker:'MSFT', wacc:8.39,color:'#00B4D8'},
+  {ticker:'GOOG', wacc:8.45,color:'#4285F4'},
+];
+
+// ── Clock ───────────────────────────────────────────────────────────
+function updateClock(){
+  const n=new Date();
+  document.getElementById('clock').textContent=
+    n.toLocaleTimeString('en-US',{hour12:false});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ── Render table ────────────────────────────────────────────────────
+function renderTable(){
+  const tbody=document.getElementById('table-body');
+  tbody.innerHTML='';
+  WACC_DATA.slice().reverse().forEach(r=>{
+    const tr=document.createElement('tr');
+    if(r.yr===2023) tr.classList.add('active-yr');
+    const wc = r.wacc>=8?'var(--fab-red)':r.wacc>=7?'var(--fab-gold)':'var(--fab-grn)';
+    tr.innerHTML=`
+      <td style="color:var(--fab-cyan);font-weight:600">${r.yr}</td>
+      <td style="color:${wc};font-weight:700">${r.wacc.toFixed(2)}%</td>
+      <td>${r.ke.toFixed(2)}%</td>
+      <td>${r.kd.toFixed(2)}%</td>
+      <td>${r.we.toFixed(1)}%</td>
+      <td>${r.wd.toFixed(1)}%</td>
+      <td>${r.beta.toFixed(2)}</td>
+      <td>${r.rf.toFixed(2)}%</td>
+      <td>${r.tax.toFixed(1)}%</td>
+      <td>$${r.mktcap.toFixed(0)}B</td>
+      <td>${r.de.toFixed(3)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+// ── Peer comparison ─────────────────────────────────────────────────
+function renderPeers(){
+  const grid=document.getElementById('co-grid');
+  grid.innerHTML='';
+  const maxW=Math.max(...PEERS.map(p=>p.wacc));
+  PEERS.forEach(p=>{
+    const pct=(p.wacc/maxW*100).toFixed(1);
+    const div=document.createElement('div');
+    div.className='co-row'+(p.ticker==='MSFT'?' active':'');
+    div.innerHTML=`
+      <div class="co-ticker">${p.ticker}</div>
+      <div class="co-bar-wrap"><div class="co-bar" style="width:0;background:${p.color};opacity:.8" data-w="${pct}"></div></div>
+      <div class="co-wacc" style="color:${p.color}">${p.wacc.toFixed(2)}%</div>`;
+    grid.appendChild(div);
+  });
+}
+
+// ── SVG Trend Chart ─────────────────────────────────────────────────
+function renderTrend(){
+  const svg=document.getElementById('trend-svg');
+  svg.innerHTML='';
+  const W=680,H=240,PL=45,PR=20,PT=20,PB=30;
+  const cW=W-PL-PR, cH=H-PT-PB;
+
+  const yrs=WACC_DATA.map(d=>d.yr);
+  const minY=4, maxY=10;
+  const xS=i=>PL+i*(cW/(yrs.length-1));
+  const yS=v=>PT+cH-(v-minY)/(maxY-minY)*cH;
+
+  // Grid lines
+  for(let v=4;v<=10;v+=1){
+    const y=yS(v);
+    const g=document.createElementNS('http://www.w3.org/2000/svg','line');
+    g.setAttribute('x1',PL); g.setAttribute('x2',W-PR);
+    g.setAttribute('y1',y);  g.setAttribute('y2',y);
+    g.setAttribute('stroke','#1A3050'); g.setAttribute('stroke-width','0.7');
+    svg.appendChild(g);
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',PL-5); t.setAttribute('y',y+3.5);
+    t.setAttribute('text-anchor','end'); t.setAttribute('font-size','8.5');
+    t.setAttribute('fill','#4A6580'); t.setAttribute('font-family','IBM Plex Mono');
+    t.textContent=v+'%';
+    svg.appendChild(t);
+  }
+
+  // Rf area fill
+  const rfPts=WACC_DATA.map((d,i)=>xS(i)+','+yS(d.rf));
+  const rfArea=`M ${xS(0)},${yS(WACC_DATA[0].rf)} ` + WACC_DATA.slice(1).map((d,i)=>`L ${xS(i+1)},${yS(d.rf)}`).join(' ') + ` L ${xS(WACC_DATA.length-1)},${yS(minY)} L ${PL},${yS(minY)} Z`;
+  const rfFill=document.createElementNS('http://www.w3.org/2000/svg','path');
+  rfFill.setAttribute('d',rfArea); rfFill.setAttribute('fill','rgba(255,185,0,.08)');
+  svg.appendChild(rfFill);
+
+  // WACC area fill
+  const waccArea=`M ${xS(0)},${yS(WACC_DATA[0].wacc)} `+WACC_DATA.slice(1).map((d,i)=>`L ${xS(i+1)},${yS(d.wacc)}`).join(' ')+` L ${xS(WACC_DATA.length-1)},${yS(minY)} L ${PL},${yS(minY)} Z`;
+  const wFill=document.createElementNS('http://www.w3.org/2000/svg','path');
+  wFill.setAttribute('d',waccArea); wFill.setAttribute('fill','rgba(0,180,216,.07)');
+  svg.appendChild(wFill);
+
+  // Draw series
+  const series=[
+    {key:'wacc',color:'#00B4D8',width:2.5,dash:''},
+    {key:'ke',  color:'#0078D4',width:1.8,dash:''},
+    {key:'kd',  color:'#00B294',width:1.4,dash:'4 2'},
+    {key:'rf',  color:'rgba(255,185,0,.6)',width:1,dash:'3 3'},
+  ];
+  series.forEach(s=>{
+    const pts=WACC_DATA.map((d,i)=>`${xS(i)},${yS(d[s.key])}`).join(' ');
+    const pl=document.createElementNS('http://www.w3.org/2000/svg','polyline');
+    pl.setAttribute('points',pts);
+    pl.setAttribute('fill','none');
+    pl.setAttribute('stroke',s.color);
+    pl.setAttribute('stroke-width',s.width);
+    if(s.dash) pl.setAttribute('stroke-dasharray',s.dash);
+    pl.setAttribute('stroke-linecap','round');
+    pl.setAttribute('stroke-linejoin','round');
+    svg.appendChild(pl);
+  });
+
+  // WACC dots
+  WACC_DATA.forEach((d,i)=>{
+    const c=document.createElementNS('http://www.w3.org/2000/svg','circle');
+    c.setAttribute('cx',xS(i)); c.setAttribute('cy',yS(d.wacc));
+    c.setAttribute('r','4');
+    c.setAttribute('fill',d.wacc>=8?'#D13438':d.wacc>=7?'#FFB900':'#107C10');
+    c.setAttribute('stroke','#050A14'); c.setAttribute('stroke-width','1.5');
+    svg.appendChild(c);
+    if(i%3===0||i===WACC_DATA.length-1){
+      const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+      t.setAttribute('x',xS(i)); t.setAttribute('y',yS(d.wacc)-8);
+      t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','7.5');
+      t.setAttribute('fill','#8BACC8'); t.setAttribute('font-family','IBM Plex Mono');
+      t.textContent=d.wacc.toFixed(1)+'%';
+      svg.appendChild(t);
+    }
+  });
+
+  // X-axis labels
+  WACC_DATA.forEach((d,i)=>{
+    const t=document.createElementNS('http://www.w3.org/2000/svg','text');
+    t.setAttribute('x',xS(i)); t.setAttribute('y',H-5);
+    t.setAttribute('text-anchor','middle'); t.setAttribute('font-size','8.5');
+    t.setAttribute('fill','#4A6580'); t.setAttribute('font-family','IBM Plex Mono');
+    t.textContent=d.yr;
+    svg.appendChild(t);
+  });
+
+  // 2023 highlight
+  const lastX=xS(WACC_DATA.length-1);
+  const hl=document.createElementNS('http://www.w3.org/2000/svg','rect');
+  hl.setAttribute('x',lastX-18); hl.setAttribute('y',PT);
+  hl.setAttribute('width',18+PR); hl.setAttribute('height',cH);
+  hl.setAttribute('fill','rgba(0,180,216,.04)');
+  svg.appendChild(hl);
+}
+
+// ── Animate waterfall bars ───────────────────────────────────────────
+function animateWF(){
+  document.querySelectorAll('.wf-bar').forEach((bar,i)=>{
+    const w=bar.dataset.w;
+    bar.style.width='0%';
+    setTimeout(()=>{bar.style.width=w+'%';},200+i*80);
+  });
+}
+function animateCoBars(){
+  document.querySelectorAll('.co-bar').forEach((bar,i)=>{
+    const w=bar.dataset.w;
+    bar.style.width='0%';
+    setTimeout(()=>{bar.style.width=w+'%';},100+i*60);
+  });
+}
+function animateCBars(){
+  document.querySelectorAll('.cbar-fill').forEach((bar,i)=>{
+    const w=bar.dataset.w;
+    bar.style.width='0%';
+    setTimeout(()=>{bar.style.width=w+'%';},150+i*70);
+  });
+}
+
+function animateAll(){
+  animateWF(); animateCoBars(); animateCBars();
+}
+
+// ── Init ─────────────────────────────────────────────────────────────
+renderTable();
+renderPeers();
+renderTrend();
+window.addEventListener('load',()=>{
+  setTimeout(animateAll,300);
+});
+
+function switchCompany(v){
+  // For demo just show alert — in real Fabric this would query DirectLake
+  document.querySelector('.header-left .workspace-tag').textContent =
+    `Workspace: Capital Analytics | Item: WACC RT Dashboard — ${v}`;
+}
+function recalc(){
+  const erp=parseFloat(document.getElementById('erp-sel').value);
+  WACC_DATA.forEach(d=>{
+    d.ke=(d.rf + d.beta*erp*100);
+    d.wacc=(d.we/100*d.ke/100 + d.wd/100*d.kd/100*(1-d.tax/100))*100;
+  });
+  const last=WACC_DATA[WACC_DATA.length-1];
+  document.getElementById('k-wacc').textContent=last.wacc.toFixed(2)+'%';
+  document.getElementById('k-ke').textContent=last.ke.toFixed(2)+'%';
+  renderTable(); renderTrend();
+}
+</script>
+</body>
+</html>
